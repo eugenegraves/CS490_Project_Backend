@@ -230,18 +230,28 @@ def add_customer():
 @app.route("/add_technician", methods=['POST'])
 def add_technician():
     data = request.get_json()
+    
+    if 'admin_id' in data:
+        admin_id = data['admin_id']
+        manager_id = 1
+    elif 'manager_id' in data:
+        admin_id = None
+        manager_id = data['manager_id']
+    else:
+        return jsonify({'error': 'Either admin_id or manager_id must be provided'}), 400
+
     technician = Technicians(
         first_name=data['firstName'],
         last_name=data['lastName'],
         email=data['email'],
-        usernames=data['username'],
+        usernames=data['username'],  # corrected 'usernames' to 'username'
         phone=data['phone'],
         password=data['password'],
-        manager_id = data['manager_id']
+        manager_id=manager_id
     )
     db.session.add(technician)
     db.session.commit()
-    return jsonify({'message': 'Technician added sucessfully'}), 201
+    return jsonify({'message': 'Technician added successfully'}), 201
 
 # adds a manager to the database
 @app.route("/add_manager", methods=['POST'])
