@@ -5,6 +5,7 @@ from flask_cors import CORS
 from flask_mysqldb import MySQL
 from sqlalchemy import text, func
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 import math
 
 
@@ -14,13 +15,17 @@ app = Flask(__name__)
 
 #hello
 
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -66,12 +71,7 @@ class Technicians(db.Model):
 
     def __repr__(self):
         return f'<Technician {self.first_name} {self.last_name}>'
-class SubscribedService(db.Model):
-    __tablename__ ='subscribded_services'
-    subscribed_service_id = db.Column(db.Integer, primary_key=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'))
-    service_package_id = db.Column(db.Integer, db.ForeignKey('services_package.service_package_id'))  
-
+    
 class Managers(db.Model):
     __tablename__ = 'managers'
 
@@ -434,20 +434,19 @@ def get_all_services():
         })
     return jsonify(services_list)
 
-@app.route('/ServicesPackage', methods=['GET'])
+@app.route('/ServicesPackage', methods=['POST'])
 def getServicePackage():
     services = ServicesPackage.query.all()
     services_list = []
     for service in services:
         services_list.append({
-           'service_package_id': service.service_package_id,
+            'services_offered_id': service.services_offered_id,
             'name': service.name,
             'price': service.price,
             'description': service.description,
             'image': service.image
         })
     return jsonify(services_list)
-
 
 
 @app.route('/service-request', methods=['POST'])
@@ -528,40 +527,6 @@ def get_customer_service_requests(customer_id):
             'status': status,
             'car_id': car_id,
             'service_offered_id': service_offered_id
-        })
-
-    return jsonify(result)
-
-@app.route('/show_customer_service_requests/', methods=['GET'])
-def show_customer_service_requests():
-   
-    service_requests = db.session.query(
-        ServicesRequest, ServicesOffered.name, ServicesOffered.price,
-        ServicesOffered.description, ServicesRequest.proposed_datetime,
-        ServicesRequest.status, ServicesRequest.car_id,
-        ServicesRequest.service_offered_id,
-        Customer.usernames,
-        Customer.phone
-    ).join(
-        ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
-    ).join(
-        Customer, Customer.customer_id == ServicesRequest.customer_id
-    ).all()
-
-    result = []
-    for request, name, service_price, description, proposed_datetime, status, car_id, service_offered_id, customer_username, customer_phone, in service_requests:
-        
-        result.append({
-            'service_request_id': request.service_request_id,
-            'service_name': name,
-            'service_price': service_price,
-            'description': description,
-            'proposed_datetime': proposed_datetime.isoformat() if proposed_datetime else None,
-            'status': status,
-            'car_id': car_id,
-            'service_offered_id': service_offered_id,
-            'customer_username': customer_username,
-            'customer_phone': customer_phone
         })
 
     return jsonify(result)
@@ -799,61 +764,35 @@ def getCarInfos():
 
 #Retrieve the accesories by categories
 @app.route('/accessories', methods=['POST'])
-def accesories():
-    category = request.get_json()
-    acessories = Accessoire.query.filter_by(category=category).all()
-    accesoriesDic = [{
-        'accesoire_id' : row.accesoire_id,
-        'name' : row.name,
-        'description' : row.description,
-        'price' : row.price,
-        'image' : row.image
-    } for row in acessories]
-    return jsonify(accesoriesDic),200
-
-@app.route('/addtoCartAndOwnedService', methods=['POST'])
-def AddtoCartAndOwnedService():
-    data = request.get_json()
-    customer_id = data.get('customer_id')
-    packages = data.get('packages')
-    print("id",customer_id)
-    print("packages  " ,packages)
+def accessories():
     try:
-        # Begin a transaction
-        db.session.begin()
-
-        for package in packages: 
-            # Add to cart
-            new_cart_item = Cart(
-                customer_id=customer_id,
-                item_price=package.get("price"),
-                item_name=package.get("name"),
-                item_image=package.get("image"),
-                car_id=None,
-                accessoire_id=None,  
-                service_offered_id=None,  
-                service_package_id=package.get("service_package_id")  
-            )
-            db.session.add(new_cart_item)
-
-            # Add to subscribed services
-            new_subscribedService_item = SubscribedService(
-                customer_id=customer_id,
-                service_package_id=package.get("service_package_id")  
-            )
-            db.session.add(new_subscribedService_item)
-        
-        # Commit the transaction
-        db.session.commit()
-        
+        category = request.get_json()['category']  # Use MultiDict for validation
+        print("this is the recieved category: ", category )
+        query = text("SELECT accessoires.accessoire_id, accessoires.name, accessoires.description, accessoires.price, accessoires.image FROM cars_dealershipx.accessoires WHERE accessoires.category = :category")
+        result = db.session.execute(query, {'category': category})
+        rows = result.fetchall()
+        accessories_dic = [{'accessoire_id': row[0], 'name': row[1], 'description': row[2], 'price': row[3], 'image': row[4]} for row in rows]
+        return jsonify(accessories_dic), 200
     except Exception as e:
-        # Rollback the transaction in case of any exception
-        db.session.rollback()
+        # Handle errors appropriately (log, return error response)
         return jsonify({'error': str(e)}), 500
-    return jsonify({'message': 'Service packages added to subscribed services and cart successfully'}), 200
+
+    # Return the JSON response containing the accessories data
+    #return jsonify(accessoriesDic), 200
+
+
+@app.route('/remove_car', methods=['POST'])
+def removeCar():
+    carID = request.json.get('car_id')  # Get car_id from JSON request data
     
+    if carID:
+        print("Car ID received:", carID)  # Print the received car ID
+        return jsonify({'message': carID}), 200  # Send back OK response if data is received
+    else:
+        return jsonify({'error': 'No data received'}), 400  # Send back error response if no data is received
 
-
+    
+    
 
 '''IN HALT, make offer system'''
 @app.route('/make_offer', methods=['POST'])
