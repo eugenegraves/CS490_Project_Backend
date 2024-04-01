@@ -216,6 +216,23 @@ class ServicesPackage(db.Model):
     image = db.Column(db.String(1000), nullable=False)
     cart_items = db.relationship('Cart', backref='service_package', lazy=True)
 
+
+class TestDriveAppointment(db.Model):
+    __tablename__ = 'test_drive_appointments'
+
+    appointment_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    appointment_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(45), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
+    car_id = db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
+
+    customer = relationship('Customer', backref='test_drive_appointments')
+    car = relationship('Cars', backref='test_drive_appointments')
+
+    def __repr__(self):
+        return f'<TestDriveAppointment appointment_id={self.appointment_id} appointment_date={self.appointment_date} status={self.status}>'
+
+
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
     data = request.get_json()
@@ -823,7 +840,28 @@ def AddtoCartAndOwnedService():
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'Service packages added to subscribed services and cart successfully'}), 200
     
+@app.route('/testdrive', methods=['POST'])
+def add_appointment():
+    data = request.json
 
+    
+    appointment_date = datetime.strptime(data['appointment_date'], '%Y-%m-%d %H:%M:%S')
+    status = data['status']
+    customer_id = data['customer_id']
+    car_id = data['car_id']
+
+
+    new_appointment = TestDriveAppointment(
+        appointment_date=appointment_date,
+        status=status,
+        customer_id=customer_id,
+        car_id=car_id
+    )
+
+    db.session.add(new_appointment)
+    db.session.commit()
+
+    return jsonify({'message': 'Appointment added successfully'}), 201
 
 
 '''IN HALT, make offer system'''
