@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
-from sqlalchemy import text, func
+from sqlalchemy import text, func, and_
 from datetime import datetime
 import math
 
@@ -18,10 +18,10 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
@@ -584,12 +584,12 @@ def get_cart_items(customer_id):
 
     return jsonify({'cart_items': items_data}), 200
 #use the carid to delete the perks and car if it is a car else use cartId
-@app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>', methods=['DELETE'])
-def delete_cart(cartId,car_id,service_package_id):
+@app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>/<int:customer_id>', methods=['DELETE'])
+def delete_cart(cartId,car_id,service_package_id,customer_id):
     try:
         # Query for all instances matching the criteria
         if car_id != 0 and service_package_id == 0:
-            carts_to_delete = Cart.query.filter_by(car_id=car_id).all()
+            carts_to_delete = Cart.query.where(and_(car_id== car_id,customer_id ==customer_id)).all()
         else:
             carts_to_delete = Cart.query.filter_by(cart_id=cartId).all()
         
