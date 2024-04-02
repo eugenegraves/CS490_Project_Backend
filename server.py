@@ -121,7 +121,6 @@ class ItemSold(db.Model):
     def __repr__(self):
         return f'<ItemSold {self.item_sold_id}>'
 
-
 class ServicesRequest(db.Model):
     __tablename__ = 'services_request'
     service_request_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -213,7 +212,6 @@ class ServicesPackage(db.Model):
     image = db.Column(db.String(1000), nullable=False)
     cart_items = db.relationship('Cart', backref='service_package', lazy=True)
 
-
 class TestDriveAppointment(db.Model):
     __tablename__ = 'test_drive_appointments'
 
@@ -228,6 +226,22 @@ class TestDriveAppointment(db.Model):
 
     def __repr__(self):
         return f'<TestDriveAppointment appointment_id={self.appointment_id} appointment_date={self.appointment_date} status={self.status}>'
+
+# NOT FINISHED -DYLAN
+class AssignedServices(db.Model):
+    __tablename__ = 'assigned_services'
+
+    assigned_service_id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    technicians_id = db.Column(db.Integer, db.ForeignKey('technicians.technicians_id'), nullable=False)
+    service_request_id = db.Column(db.Integer, db.ForeignKey('services_request.service_request_id'), nullable=False)
+
+
+    technician = relationship('Technicians', backref='assigned_services')
+    service_request = relationship('ServicesRequest', backref='assigned_services')
+
+
+    def __repr__(self):
+        return f'<AssignedServices assigned_service_id={self.assigned_service_id} technicians_id={self.technicians_id} service_request_id={self.service_request_id}>'
 
 
 @app.route('/add_customer', methods=['POST'])
@@ -458,6 +472,28 @@ def get_all_services():
         })
     return jsonify(services_list)
 
+# DYLAN IS WORKING
+@app.route('/show_assigned_services', methods=['GET'])
+def show_assigned_services():
+    assigned_services = AssignedServices.query.all()
+
+    result = []
+
+    for service in assigned_services:
+        service_dict = {
+            'assigned_service_id':service.assigned_service_id,
+            'technician_first_name':service.technician.first_name,
+            'technician_last_name':service.technician.last_name,
+            'technician_email':service.technician.email,
+            'technician_phone':service.technician.phone,
+            # 'customer_request_description':service.service,
+            # 'customer_request_name':service.services_offered.name,
+            # 'customer_request_proposed_date':service.services_offered.name,
+        }
+        result.append(service_dict)
+
+    return jsonify(result)
+
 @app.route('/ServicesPackage', methods=['POST'])
 def getServicePackage():
     services = ServicesPackage.query.all()
@@ -629,6 +665,7 @@ def get_cart_items(customer_id):
         items_data.append(item_data)
 
     return jsonify({'cart_items': items_data}), 200
+
 #use the carid to delete the perks and car if it is a car else use cartId
 @app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>/<int:customer_id>', methods=['DELETE'])
 def delete_cart(cartId,car_id,service_package_id,customer_id):
@@ -762,7 +799,6 @@ def delete_car(car_id):
             return jsonify({'error': f'Car with ID {car_id} not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 # handles returning filtered cars that the user selected
 @app.route('/cars_details', methods=['POST'])
