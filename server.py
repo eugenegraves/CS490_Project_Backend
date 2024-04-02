@@ -573,19 +573,26 @@ def get_cart_items(customer_id):
         items_data.append(item_data)
 
     return jsonify({'cart_items': items_data}), 200
-
-@app.route('/delete_cart_item/<int:cart_id>', methods=['DELETE'])
-def delete_cart(cart_id):
+#use the carid to delete the perks and car if it is a car else use cartId
+@app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>', methods=['DELETE'])
+def delete_cart(cartId,car_id,service_package_id):
     try:
-        cart = Cart.query.get(cart_id)  # Retrieve the cart by cart_id
-        if cart:
-            db.session.delete(cart)  # Delete the cart
-            db.session.commit()  # Commit the transaction
-            return jsonify(message='Cart deleted successfully'), 200
+        # Query for all instances matching the criteria
+        if car_id != 0 and service_package_id == 0:
+            carts_to_delete = Cart.query.filter_by(car_id=car_id).all()
         else:
-            return jsonify(message='Cart not found'), 404
+            carts_to_delete = Cart.query.filter_by(cart_id=cartId).all()
+        
+        # Delete each instance
+        for cart in carts_to_delete:
+            db.session.delete(cart)
+        
+        # Commit the transaction
+        db.session.commit()
+        
+        return jsonify(message='Carts deleted successfully'), 200
     except Exception as e:
-        db.session.rollback()  # Rollback the transaction in case of an error
+        db.session.rollback()
         return jsonify(message=str(e)), 500
 
 @app.route('/add_to_cart', methods=['POST'])
@@ -804,6 +811,7 @@ def AddtoCartAndOwnedService():
     data = request.get_json()
     customer_id = data.get('customer_id')
     packages = data.get('packages')
+    car_id = data.get('car_id')
     print("id",customer_id)
     print("packages  " ,packages)
     try:
@@ -817,7 +825,7 @@ def AddtoCartAndOwnedService():
                 item_price=package.get("price"),
                 item_name=package.get("name"),
                 item_image=package.get("image"),
-                car_id=None,
+                car_id=car_id,
                 accessoire_id=None,  
                 service_offered_id=None,  
                 service_package_id=package.get("service_package_id")  
@@ -825,11 +833,11 @@ def AddtoCartAndOwnedService():
             db.session.add(new_cart_item)
 
             # Add to subscribed services
-            new_subscribedService_item = SubscribedService(
-                customer_id=customer_id,
-                service_package_id=package.get("service_package_id")  
-            )
-            db.session.add(new_subscribedService_item)
+            # new_subscribedService_item = SubscribedService(
+            #     customer_id=customer_id,
+            #     service_package_id=package.get("service_package_id")  
+            # )
+            # db.session.add(new_subscribedService_item)
         
         # Commit the transaction
         db.session.commit()
