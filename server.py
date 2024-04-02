@@ -5,6 +5,7 @@ from flask_cors import CORS
 from flask_mysqldb import MySQL
 from sqlalchemy import text, func
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 import math
 
 
@@ -14,13 +15,17 @@ app = Flask(__name__)
 
 #hello
 
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -66,12 +71,7 @@ class Technicians(db.Model):
 
     def __repr__(self):
         return f'<Technician {self.first_name} {self.last_name}>'
-class SubscribedService(db.Model):
-    __tablename__ ='subscribded_services'
-    subscribed_service_id = db.Column(db.Integer, primary_key=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'))
-    service_package_id = db.Column(db.Integer, db.ForeignKey('services_package.service_package_id'))  
-
+    
 class Managers(db.Model):
     __tablename__ = 'managers'
 
@@ -434,20 +434,19 @@ def get_all_services():
         })
     return jsonify(services_list)
 
-@app.route('/ServicesPackage', methods=['GET'])
+@app.route('/ServicesPackage', methods=['POST'])
 def getServicePackage():
     services = ServicesPackage.query.all()
     services_list = []
     for service in services:
         services_list.append({
-           'service_package_id': service.service_package_id,
+            'services_offered_id': service.services_offered_id,
             'name': service.name,
             'price': service.price,
             'description': service.description,
             'image': service.image
         })
     return jsonify(services_list)
-
 
 
 @app.route('/service-request', methods=['POST'])
@@ -765,59 +764,129 @@ def getCarInfos():
 
 #Retrieve the accesories by categories
 @app.route('/accessories', methods=['POST'])
-def accesories():
-    category = request.get_json()
-    acessories = Accessoire.query.filter_by(category=category).all()
-    accesoriesDic = [{
-        'accesoire_id' : row.accesoire_id,
-        'name' : row.name,
-        'description' : row.description,
-        'price' : row.price,
-        'image' : row.image
-    } for row in acessories]
-    return jsonify(accesoriesDic),200
-
-@app.route('/addtoCartAndOwnedService', methods=['POST'])
-def AddtoCartAndOwnedService():
-    data = request.get_json()
-    customer_id = data.get('customer_id')
-    packages = data.get('packages')
-    print("id",customer_id)
-    print("packages  " ,packages)
+def accessories():
     try:
-        # Begin a transaction
-        db.session.begin()
+        category = request.get_json()['category']  # Use MultiDict for validation
+        print("this is the recieved category: ", category )
+        query = text("SELECT accessoires.accessoire_id, accessoires.name, accessoires.description, accessoires.price, accessoires.image FROM cars_dealershipx.accessoires WHERE accessoires.category = :category")
+        result = db.session.execute(query, {'category': category})
+        rows = result.fetchall()
+        accessories_dic = [{'accessoire_id': row[0], 'name': row[1], 'description': row[2], 'price': row[3], 'image': row[4]} for row in rows]
+        return jsonify(accessories_dic), 200
+    except Exception as e:
+        # Handle errors appropriately (log, return error response)
+        return jsonify({'error': str(e)}), 500
 
-        for package in packages: 
-            # Add to cart
-            new_cart_item = Cart(
-                customer_id=customer_id,
-                item_price=package.get("price"),
-                item_name=package.get("name"),
-                item_image=package.get("image"),
-                car_id=None,
-                accessoire_id=None,  
-                service_offered_id=None,  
-                service_package_id=package.get("service_package_id")  
-            )
-            db.session.add(new_cart_item)
+    # Return the JSON response containing the accessories data
+    #return jsonify(accessoriesDic), 200
 
-            # Add to subscribed services
-            new_subscribedService_item = SubscribedService(
-                customer_id=customer_id,
-                service_package_id=package.get("service_package_id")  
-            )
-            db.session.add(new_subscribedService_item)
-        
+
+@app.route('/remove_car', methods=['POST'])
+def removeCar():
+    carID = request.json.get('car_id')  # Get car_id from JSON request data
+    
+    if carID:
+        print("Car ID received:", carID)  # Print the received car ID
+        return jsonify({'message': carID}), 200  # Send back OK response if data is received
+    else:
+        return jsonify({'error': 'No data received'}), 400  # Send back error response if no data is received
+
+    
+# Delete the accessory by accessory_id
+@app.route('/deleteAccessory', methods=['POST'])
+def deleteAccessory():
+    try:
+        accessoryID = request.get_json()['accessoryID']  # Use MultiDict for validation
+        print("this is the received accessory_id: ", accessoryID)
+        query = text("DELETE FROM cars_dealershipx.accessoires WHERE accessoire_id = :accessoryID")
+        result = db.session.execute(query, {'accessoryID': accessoryID})
         # Commit the transaction
         db.session.commit()
-        
+
+        # Check if any rows were affected
+        if result.rowcount > 0:
+            return jsonify({'message': 'Accessory deleted successfully'}), 200
+        else:
+            return jsonify({'error': 'Accessory not found'}), 404
     except Exception as e:
-        # Rollback the transaction in case of any exception
-        db.session.rollback()
+        # Handle errors appropriately (log, return error response)
         return jsonify({'error': str(e)}), 500
-    return jsonify({'message': 'Service packages added to subscribed services and cart successfully'}), 200
-    
+
+
+# Add the accessory to the database
+@app.route('/addAccessory', methods=['POST'])
+def addAccessory():
+    try:
+        if request.is_json:
+            data = request.get_json()
+            accessory_data = data.get('accessoryData')
+            print("Received JSON data:", accessory_data)
+            name = accessory_data.get('name')
+            description = accessory_data.get('description')
+            price = accessory_data.get('price')
+            image = accessory_data.get('image')
+            category = accessory_data.get('category')
+            print("Received: name -", name)
+            print("Received: description -", description)
+            print("Received: price -", price)
+            print("Received: image -", image)
+            print("Received: category -", category)
+            
+            if name and description and price and image and category:
+                query = text('''INSERT INTO cars_dealershipx.accessoires (name, description, price, image, category)
+                        VALUES (:name, :description, :price, :image, :category)''')
+                result = db.session.execute(query, {'name': name, 'description': description, 'price': price, 'image': image, 'category': category})
+                print("Result row count:", result.rowcount)
+                if result.rowcount > 0:
+                    db.session.commit()
+                    return jsonify({'message': 'Accessory added successfully'}), 200
+                else:
+                    return jsonify({'error': 'Unsuccessful execution of query'}), 400
+            else:
+                return jsonify({'error': 'Accessory data not provided or incomplete'}), 400
+        else:
+            return jsonify({'error': 'Request is not in JSON format'}), 400
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({'error': 'Failed to add accessory'}), 500
+
+
+# add accessory to cart
+@app.route('/addAccessoryToCart', methods=['POST'])
+def addAccessoryToCart():
+    try:
+        if request.is_json:
+            data = request.get_json()
+            cart_data = data.get('cartData')
+            print("Received JSON data:", cart_data)
+            customer_id = cart_data.get('customer_id')
+            item_price = cart_data.get('item_price')
+            item_image = cart_data.get('item_image')
+            item_name = cart_data.get('item_name')
+            accessoire_id = cart_data.get('accessoire_id')
+            print("Received: csut -", customer_id)
+            print("Received: price -", item_price)
+            print("Received: image -", item_image)
+            print("Received: name -", item_name)
+            print("Received: aceID -", accessoire_id)
+            
+            if customer_id and item_price and item_image and item_name and accessoire_id:
+                query = text('''INSERT INTO cars_dealershipx.cart (customer_id, item_price, item_image, item_name, accessoire_id)
+                        VALUES (:customer_id, :item_price, :item_image, :item_name, :accessoire_id)''')
+                result = db.session.execute(query, {'customer_id': customer_id, 'item_price': item_price, 'item_image': item_image, 'item_name': item_name, 'accessoire_id': accessoire_id})
+                print("Result row count:", result.rowcount)
+                if result.rowcount > 0:
+                    db.session.commit()
+                    return jsonify({'message': 'Accessory added to cart successfully'}), 200
+                else:
+                    return jsonify({'error': 'Unsuccessful execution of query'}), 400
+            else:
+                return jsonify({'error': 'cart data not provided or incomplete'}), 400
+        else:
+            return jsonify({'error': 'Request is not in JSON format'}), 400
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({'error': 'Failed to add accessory'}), 500
 
 
 
@@ -833,3 +902,4 @@ def make_offer():
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
+
