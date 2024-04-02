@@ -505,6 +505,24 @@ def show_customer_service_requests():
 
     return jsonify(result)
 
+@app.route('/update_customer_service_requests/<int:service_request_id>', methods=['PATCH'])
+def update_customer_service_requests(service_request_id):
+    # Retrieve the service request from the database
+    service_request = ServicesRequest.query.get(service_request_id)
+
+    if not service_request:
+        return jsonify({'error': 'Service request not found'}), 404
+
+    # Parse the request body for the new status
+    data = request.json
+    new_status = data.get('status')
+
+    # Update the status of the service request
+    service_request.status = new_status
+    db.session.commit()
+
+    return jsonify({'message': 'Service request updated successfully'}), 200
+
 @app.route('/service-request', methods=['POST'])
 def create_service_request():
     if request.method == 'POST':
