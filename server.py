@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
-from sqlalchemy import text, func
+from sqlalchemy import text, func, and_
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 import math
@@ -20,13 +20,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
@@ -216,6 +213,23 @@ class ServicesPackage(db.Model):
     image = db.Column(db.String(1000), nullable=False)
     cart_items = db.relationship('Cart', backref='service_package', lazy=True)
 
+
+class TestDriveAppointment(db.Model):
+    __tablename__ = 'test_drive_appointments'
+
+    appointment_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    appointment_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(45), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
+    car_id = db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
+
+    customer = relationship('Customer', backref='test_drive_appointments')
+    car = relationship('Cars', backref='test_drive_appointments')
+
+    def __repr__(self):
+        return f'<TestDriveAppointment appointment_id={self.appointment_id} appointment_date={self.appointment_date} status={self.status}>'
+
+
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
     data = request.get_json()
@@ -263,13 +277,23 @@ def add_technician():
 @app.route("/add_manager", methods=['POST'])
 def add_manager():
     data=request.get_json()
-    manager=Managers(
-        firstName=data['first_name'],
-        lastName=data['last_name'],
-        email=data['email'],
-        phone=data['phone'],
-        password=data['password']
-    )
+    if 'admin_id' in data:
+        manager=Managers(
+            firstName=data['first_name'],
+            lastName=data['last_name'],
+            email=data['email'],
+            phone=data['phone'],
+            password=data['password'],
+            admin_id=data['admin_id']
+        )
+    else:
+        manager=Managers(
+            firstName=data['first_name'],
+            lastName=data['last_name'],
+            email=data['email'],
+            phone=data['phone'],
+            password=data['password']
+        )
     db.session.add(manager)
     db.session.commit()
     return jsonify({'message': 'Manager added successfully'}), 201
@@ -555,19 +579,26 @@ def get_cart_items(customer_id):
         items_data.append(item_data)
 
     return jsonify({'cart_items': items_data}), 200
-
-@app.route('/delete_cart_item/<int:cart_id>', methods=['DELETE'])
-def delete_cart(cart_id):
+#use the carid to delete the perks and car if it is a car else use cartId
+@app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>/<int:customer_id>', methods=['DELETE'])
+def delete_cart(cartId,car_id,service_package_id,customer_id):
     try:
-        cart = Cart.query.get(cart_id)  # Retrieve the cart by cart_id
-        if cart:
-            db.session.delete(cart)  # Delete the cart
-            db.session.commit()  # Commit the transaction
-            return jsonify(message='Cart deleted successfully'), 200
+        # Query for all instances matching the criteria
+        if car_id != 0 and service_package_id == 0:
+            carts_to_delete = Cart.query.where(and_(car_id== car_id,customer_id ==customer_id)).all()
         else:
-            return jsonify(message='Cart not found'), 404
+            carts_to_delete = Cart.query.filter_by(cart_id=cartId).all()
+        
+        # Delete each instance
+        for cart in carts_to_delete:
+            db.session.delete(cart)
+        
+        # Commit the transaction
+        db.session.commit()
+        
+        return jsonify(message='Carts deleted successfully'), 200
     except Exception as e:
-        db.session.rollback()  # Rollback the transaction in case of an error
+        db.session.rollback()
         return jsonify(message=str(e)), 500
 
 @app.route('/add_to_cart', methods=['POST'])
@@ -602,12 +633,17 @@ def add_to_cart():
         return jsonify({'error': str(e)}), 500
     
 # Create a route to add a new car for a customer
-@app.route('/add_car/<int:customer_id>', methods=['POST'])
+@app.route('/add_own_car/<int:customer_id>', methods=['POST'])
 def add_car(customer_id):
     data = request.get_json()
     car_id = data.get('car_id')
     make = data.get('make')
     model = data.get('model')
+
+    # Check if the car_id already exists in the cars table
+    existing_car = Cars.query.filter_by(car_id=car_id).first()
+    if existing_car:
+        return jsonify({'error': 'Car ID already exists'}), 400
 
     customer = Customer.query.get(customer_id)
     if not customer:
