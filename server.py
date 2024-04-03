@@ -545,7 +545,7 @@ def show_assigned_services():
 @app.route('/ServicesPackage', methods=['GET'])
 def getServicePackage():
     services = ServicesPackage.query.all()
-    print(services)
+
     services_list = []
     for service in services:
         services_list.append({
