@@ -7,6 +7,7 @@ from sqlalchemy import text, func, and_
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 import math
+from sqlalchemy.orm import joinedload
 
 
 ''' Connection '''
@@ -475,25 +476,49 @@ def get_all_services():
 # DYLAN IS WORKING
 @app.route('/show_assigned_services', methods=['GET'])
 def show_assigned_services():
-    assigned_services = AssignedServices.query.all()
+    assigned_services = db.session.query(
+        AssignedServices,
+        ServicesRequest,
+        Customer.usernames,
+        Customer.phone,
+        ServicesOffered.name.label('service_name'),
+        ServicesOffered.price.label('service_price'),
+        ServicesOffered.description.label('service_description'),
+    ).join(
+        ServicesRequest,
+        AssignedServices.service_request_id == ServicesRequest.service_request_id
+    ).join(
+        Customer,
+        Customer.customer_id == ServicesRequest.customer_id
+    ).join(
+        ServicesOffered,
+        ServicesOffered.services_offered_id == ServicesRequest.service_offered_id
+    ).options(
+        joinedload(AssignedServices.service_request)
+    ).all()
 
     result = []
 
-    for service in assigned_services:
+    for assigned_service, service_request, customer_username, customer_phone, service_name, service_price, service_description in assigned_services:
         service_dict = {
-            'assigned_service_id':service.assigned_service_id,
-            'technician_first_name':service.technician.first_name,
-            'technician_last_name':service.technician.last_name,
-            'technician_email':service.technician.email,
-            'technician_phone':service.technician.phone,
-            # 'customer_request_description':service.service,
-            # 'customer_request_name':service.services_offered.name,
-            # 'customer_request_proposed_date':service.services_offered.name,
+            'assigned_service_id': assigned_service.assigned_service_id,
+            'technician_first_name': assigned_service.technician.first_name,
+            'technician_last_name': assigned_service.technician.last_name,
+            'technician_email': assigned_service.technician.email,
+            'technician_phone': assigned_service.technician.phone,
+            'service_name': service_name,
+            'service_price': service_price,
+            'service_description': service_description,
+            'proposed_datetime': service_request.proposed_datetime.isoformat() if service_request.proposed_datetime else None,
+            'status': service_request.status,
+            'car_id': service_request.car_id,
+            'service_offered_id': service_request.service_offered_id,
+            'customer_username': customer_username,
+            'customer_phone': customer_phone
         }
         result.append(service_dict)
 
     return jsonify(result)
-
 @app.route('/ServicesPackage', methods=['POST'])
 def getServicePackage():
     services = ServicesPackage.query.all()
