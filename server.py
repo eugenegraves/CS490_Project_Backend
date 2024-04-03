@@ -869,10 +869,19 @@ def cars_details():
         if color:
             filtered_cars = filtered_cars.filter(Cars.color == color)
         if budget:
-            budget_range = budget.replace('$', '').split("-")
-            min_price = float(budget_range[0])
-            max_price = float(budget_range[1]) if len(budget_range) > 1 else float('inf')
-            filtered_cars = filtered_cars.filter(Cars.price >= min_price, Cars.price <= max_price)
+            # if the user selects $200000+, handle it accordingly
+            if budget.endswith("+"):
+                min_price = float(budget.replace('$', '').replace('+', ''))
+                max_price = float('inf')  
+            else:
+                budget_range = budget.replace('$', '').split("-")
+                min_price = float(budget_range[0]) 
+                max_price = float(budget_range[1]) if len(budget_range) > 1 else float('inf') 
+
+            # apply price range filter
+            filtered_cars = filtered_cars.filter(Cars.price >= min_price)
+            if max_price != float('inf'):
+                filtered_cars = filtered_cars.filter(Cars.price <= max_price)
 
         total_filtered = filtered_cars.count()
         total_pages = ceil(total_filtered / per_page)
