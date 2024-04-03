@@ -19,8 +19,8 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -545,16 +545,18 @@ def show_assigned_services():
 @app.route('/ServicesPackage', methods=['GET'])
 def getServicePackage():
     services = ServicesPackage.query.all()
+    print(services)
     services_list = []
     for service in services:
         services_list.append({
-            'services_offered_id': service.services_offered_id,
+            'services_offered_id': service.service_package_id,
             'name': service.name,
             'price': service.price,
             'description': service.description,
             'image': service.image
         })
-    return jsonify(services_list)
+    print(services_list)    
+    return jsonify(services_list), 200
 
 @app.route('/show_customer_service_requests/', methods=['GET'])
 def show_customer_service_requests():
@@ -1055,6 +1057,50 @@ def addAccessoryToCart():
     except Exception as e:
         print("Error:", e)
         return jsonify({'error': 'Failed to add accessory'}), 500
+
+@app.route('/addtoCartAndOwnedService', methods=['POST'])
+def AddtoCartAndOwnedService():
+    data = request.get_json()
+    customer_id = data.get('customer_id')
+    packages = data.get('packages')
+
+    try:
+        # Begin a transaction
+        db.session.begin()
+
+        for package in packages: 
+            # Add to cart
+            new_cart_item = Cart(
+                customer_id=customer_id,
+                item_price=package.get("price"),
+                item_name=package.get("name"),
+                item_image=package.get("image"),
+                car_id=None,
+                accessoire_id=None,  
+                service_offered_id=None,  
+                service_package_id=package.get("service_package_id")  
+            )
+            db.session.add(new_cart_item)
+
+            # Add to subscribed services
+            # new_subscribedService_item = SubscribedService(
+            #     customer_id=customer_id,
+            #     service_package_id=package.get("service_package_id")  
+            # )
+            # db.session.add(new_subscribedService_item)
+        
+        # Commit the transaction
+        db.session.commit()
+        
+    except Exception as e:
+        # Rollback the transaction in case of any exception
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'Service packages added to subscribed services and cart successfully'}), 200
+   
+
+
+
 
 '''IN HALT, make offer system'''
 @app.route('/make_offer', methods=['POST'])
