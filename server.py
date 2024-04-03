@@ -7,6 +7,7 @@ from sqlalchemy import text, func, and_
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 import math
+from math import ceil
 
 
 ''' Connection '''
@@ -18,8 +19,8 @@ app = Flask(__name__)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
@@ -121,7 +122,6 @@ class ItemSold(db.Model):
     def __repr__(self):
         return f'<ItemSold {self.item_sold_id}>'
 
-
 class ServicesRequest(db.Model):
     __tablename__ = 'services_request'
     service_request_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -213,7 +213,6 @@ class ServicesPackage(db.Model):
     image = db.Column(db.String(1000), nullable=False)
     cart_items = db.relationship('Cart', backref='service_package', lazy=True)
 
-
 class TestDriveAppointment(db.Model):
     __tablename__ = 'test_drive_appointments'
 
@@ -228,7 +227,6 @@ class TestDriveAppointment(db.Model):
 
     def __repr__(self):
         return f'<TestDriveAppointment appointment_id={self.appointment_id} appointment_date={self.appointment_date} status={self.status}>'
-
 
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
@@ -629,6 +627,7 @@ def get_cart_items(customer_id):
         items_data.append(item_data)
 
     return jsonify({'cart_items': items_data}), 200
+
 #use the carid to delete the perks and car if it is a car else use cartId
 @app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>/<int:customer_id>', methods=['DELETE'])
 def delete_cart(cartId,car_id,service_package_id,customer_id):
@@ -763,68 +762,68 @@ def delete_car(car_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-# handles returning filtered cars that the user selected
-@app.route('/cars_details', methods=['POST'])
+@app.route('/cars_details', methods=['POST', 'GET'])
 def cars_details():
-    data = request.get_json()
-    make = f'%{data["make"]}%' if data.get("make") else '%'
-    model = f'%{data["model"]}%' if data.get("model") else '%'
-    color = f'%{data["color"]}%' if data.get("color") else '%'
+    if request.method == 'POST':
+        data = request.get_json()
+        make = data.get("make", None)
+        model = data.get("model", None)
+        color = data.get("color", None)
+        budget = data.get("budget", None)
+        page = data.get('page', 1)  # Default to first page
+        per_page = data.get('per_page', 12)  # Default to 12 cars per page
 
-    # if budget filter is applied, split in min and max price to select appropriate cars from the db
-    budget = data.get('budget')
-    if budget:
-        budget = budget.replace('$', '').split("-")
-        min_price = budget[0]
-        max_price = budget[1] if len(budget) > 1 else None
-    else:
-        min_price = None
-        max_price = None
+        filtered_cars = Cars.query
 
-    query = text('''select cars.car_id,cars.make, cars.model, cars.price, cars.image0, cars.year from cars where cars.make like :make and 
-    cars.model like :model and cars.color like :color and (:min_price is null or cars.price >= :min_price) 
-    and (:max_price is null or cars.price <= :max_price);
-    ''')
+        if make:
+            filtered_cars = filtered_cars.filter(Cars.make == make)
+        if model:
+            filtered_cars = filtered_cars.filter(Cars.model == model)
+        if color:
+            filtered_cars = filtered_cars.filter(Cars.color == color)
+        if budget:
+            budget_range = budget.replace('$', '').split("-")
+            min_price = float(budget_range[0])
+            max_price = float(budget_range[1]) if len(budget_range) > 1 else float('inf')
+            filtered_cars = filtered_cars.filter(Cars.price >= min_price, Cars.price <= max_price)
+
+        total_filtered = filtered_cars.count()
+        total_pages = ceil(total_filtered / per_page)
+        filtered_cars = filtered_cars.offset((page - 1) * per_page).limit(per_page)
+
+        cars = [{'car_id': car.car_id, 'make': car.make, 'model': car.model,
+                 'year': car.year, 'price': car.price, 'color': car.color,
+                 'image': car.image0} for car in filtered_cars]
+
+        return jsonify({'cars': cars, 'total_pages': total_pages, 'current_page': page}), 200
     
-    result = db.session.execute(query, {
-                                        'make': make,
-                                        'model': model,
-                                        'color': color,
-                                        'min_price': min_price,
-                                        'max_price': max_price})
-    cars = [{'car_id':row[0],'make': row[1], 'model': row[2], 'price': row[3], 'image': row[4], 'year': row[5]} for row in result.fetchall()]
-    return jsonify(cars), 200
+    elif request.method == 'GET':
+        # Handle displaying all cars with pagination
+        page = request.args.get('page', default=1, type=int)
+        per_page = request.args.get('per_page', default=12, type=int)
 
-# this will grab every car in the db in order from car_id=1 to the last car in the table. This also ensures 6 cars are grabbed per page
-@app.route('/get_cars_to_display', methods=['GET'])
-def get_cars_to_display():
-    page = request.args.get('page', default=1, type=int)
-    per_page = request.args.get('per_page', default=12, type=int)
+        # Get cars for the requested page
+        offset = (page - 1) * per_page
+        all_cars = Cars.query.order_by(Cars.car_id).offset(offset).limit(per_page).all()
 
-    # calculate from where to start grabbing the next item based on the current page
-    offset = (page - 1) * per_page
-    
-    # returns cars as a list, and order them based on car_id
-    all_cars = Cars.query.order_by(Cars.car_id).offset(offset).limit(per_page).all()
+        # Format cars data
+        cars = [{
+            'car_id': car.car_id,
+            'make': car.make,
+            'model': car.model,
+            'year': car.year,
+            'price': car.price,
+            'color': car.color,
+            'image': car.image0
+        } for car in all_cars]
 
-    # gets the total number of cars in the table
-    total_cars = Cars.query.count()
+        # Get total number of cars
+        total_cars = Cars.query.count()
 
-    # gets the total number of pages
-    total_pages = math.ceil(total_cars / per_page)
+        # Calculate number of pages
+        total_pages = math.ceil(total_cars / per_page)
 
-    cars = [{
-        'car_id': car.car_id,
-        'make': car.make,
-        'model': car.model,
-        'year': car.year,
-        'price': car.price,
-        'image': car.image0
-    } for car in all_cars]
-
-    # return the list of cars, total pages, and current page
-    return jsonify({'cars': cars, 'total_pages': total_pages, 'current_page': page})
+        return jsonify({'cars': cars, 'total_pages': total_pages, 'current_page': page}), 200
 
 #fetch the selected car infos
 @app.route('/getCarInfos', methods=['POST', 'GET'])
@@ -866,7 +865,6 @@ def accessories():
     # Return the JSON response containing the accessories data
     #return jsonify(accessoriesDic), 200
 
-
 @app.route('/remove_car', methods=['POST'])
 def removeCar():
     carID = request.json.get('car_id')  # Get car_id from JSON request data
@@ -877,7 +875,6 @@ def removeCar():
     else:
         return jsonify({'error': 'No data received'}), 400  # Send back error response if no data is received
 
-    
 # Delete the accessory by accessory_id
 @app.route('/deleteAccessory', methods=['POST'])
 def deleteAccessory():
@@ -897,7 +894,6 @@ def deleteAccessory():
     except Exception as e:
         # Handle errors appropriately (log, return error response)
         return jsonify({'error': str(e)}), 500
-
 
 # Add the accessory to the database
 @app.route('/addAccessory', methods=['POST'])
@@ -936,7 +932,6 @@ def addAccessory():
         print("Error:", e)
         return jsonify({'error': 'Failed to add accessory'}), 500
 
-
 # add accessory to cart
 @app.route('/addAccessoryToCart', methods=['POST'])
 def addAccessoryToCart():
@@ -973,8 +968,6 @@ def addAccessoryToCart():
     except Exception as e:
         print("Error:", e)
         return jsonify({'error': 'Failed to add accessory'}), 500
-
-
 
 '''IN HALT, make offer system'''
 @app.route('/make_offer', methods=['POST'])
