@@ -18,9 +18,9 @@ app = Flask(__name__)
 #hello
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -565,6 +565,7 @@ def show_customer_service_requests():
         ServicesOffered.description, ServicesRequest.proposed_datetime,
         ServicesRequest.status, ServicesRequest.car_id,
         ServicesRequest.service_offered_id,
+        Customer.customer_id,
         Customer.usernames,
         Customer.phone
     ).join(
@@ -574,7 +575,7 @@ def show_customer_service_requests():
     ).all()
 
     result = []
-    for request, name, service_price, description, proposed_datetime, status, car_id, service_offered_id, customer_username, customer_phone, in service_requests:
+    for request, name, service_price, description, proposed_datetime, status, car_id, service_offered_id, customer_id, customer_username, customer_phone, in service_requests:
 
         result.append({
             'service_request_id': request.service_request_id,
@@ -585,6 +586,7 @@ def show_customer_service_requests():
             'status': status,
             'car_id': car_id,
             'service_offered_id': service_offered_id,
+            'customer_id': customer_id,
             'customer_username': customer_username,
             'customer_phone': customer_phone
         })
@@ -748,18 +750,32 @@ def add_to_cart():
     item_price = data.get('item_price')
     item_name = data.get('item_name')
     item_image = data.get('item_image')
+    item_service_offered_id = data.get('service_offered_id')
 
     try:
-        new_cart_item = Cart(
-            customer_id=customer_id,
-            item_price=item_price,
-            item_name=item_name,
-            item_image=item_image,
-            car_id=car_id,
-            accessoire_id=None,  
-            service_offered_id=None,  
-            service_package_id=None  
-        )
+        # Conditionally assign service_offered_id based on its presence in the JSON payload
+        if item_service_offered_id is not None:
+            new_cart_item = Cart(
+                customer_id=customer_id,
+                item_price=item_price,
+                item_name=item_name,
+                item_image=item_image,
+                car_id=car_id,
+                accessoire_id=None,  
+                service_offered_id=item_service_offered_id,  
+                service_package_id=None  
+            )
+        else:
+            new_cart_item = Cart(
+                customer_id=customer_id,
+                item_price=item_price,
+                item_name=item_name,
+                item_image=item_image,
+                car_id=car_id,
+                accessoire_id=None,  
+                service_offered_id=None,  
+                service_package_id=None  
+            )
 
         db.session.add(new_cart_item)
         db.session.commit()
@@ -768,7 +784,7 @@ def add_to_cart():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-    
+
 # Create a route to add a new car for a customer
 @app.route('/add_own_car/<int:customer_id>', methods=['POST'])
 def add_car(customer_id):
