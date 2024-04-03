@@ -7,11 +7,7 @@ from sqlalchemy import text, func, and_
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 import math
-<<<<<<< HEAD
-from math import ceil
-=======
 from sqlalchemy.orm import joinedload
->>>>>>> bffb992f6a323b93447c6df53ab6403297fe4917
 
 
 ''' Connection '''
@@ -20,12 +16,10 @@ app = Flask(__name__)
 
 #hello
 
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -232,8 +226,6 @@ class TestDriveAppointment(db.Model):
     def __repr__(self):
         return f'<TestDriveAppointment appointment_id={self.appointment_id} appointment_date={self.appointment_date} status={self.status}>'
 
-<<<<<<< HEAD
-=======
 # NOT FINISHED -DYLAN
 class AssignedServices(db.Model):
     __tablename__ = 'assigned_services'
@@ -251,7 +243,6 @@ class AssignedServices(db.Model):
         return f'<AssignedServices assigned_service_id={self.assigned_service_id} technicians_id={self.technicians_id} service_request_id={self.service_request_id}>'
 
 
->>>>>>> bffb992f6a323b93447c6df53ab6403297fe4917
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
     data = request.get_json()
@@ -550,7 +541,7 @@ def show_assigned_services():
 #     return jsonify({'message': 'assigned service updated successfully'}), 200
 
 
-@app.route('/ServicesPackage', methods=['POST'])
+@app.route('/ServicesPackage', methods=['GET'])
 def getServicePackage():
     services = ServicesPackage.query.all()
     services_list = []
