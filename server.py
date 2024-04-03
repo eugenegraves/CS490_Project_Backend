@@ -7,7 +7,11 @@ from sqlalchemy import text, func, and_
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 import math
+<<<<<<< HEAD
 from math import ceil
+=======
+from sqlalchemy.orm import joinedload
+>>>>>>> bffb992f6a323b93447c6df53ab6403297fe4917
 
 
 ''' Connection '''
@@ -228,6 +232,26 @@ class TestDriveAppointment(db.Model):
     def __repr__(self):
         return f'<TestDriveAppointment appointment_id={self.appointment_id} appointment_date={self.appointment_date} status={self.status}>'
 
+<<<<<<< HEAD
+=======
+# NOT FINISHED -DYLAN
+class AssignedServices(db.Model):
+    __tablename__ = 'assigned_services'
+
+    assigned_service_id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    technicians_id = db.Column(db.Integer, db.ForeignKey('technicians.technicians_id'), nullable=False)
+    service_request_id = db.Column(db.Integer, db.ForeignKey('services_request.service_request_id'), nullable=False)
+
+
+    technician = relationship('Technicians', backref='assigned_services')
+    service_request = relationship('ServicesRequest', backref='assigned_services')
+
+
+    def __repr__(self):
+        return f'<AssignedServices assigned_service_id={self.assigned_service_id} technicians_id={self.technicians_id} service_request_id={self.service_request_id}>'
+
+
+>>>>>>> bffb992f6a323b93447c6df53ab6403297fe4917
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
     data = request.get_json()
@@ -455,6 +479,76 @@ def get_all_services():
             'image': service.image
         })
     return jsonify(services_list)
+
+# DYLAN IS WORKING
+@app.route('/show_assigned_services', methods=['GET'])
+def show_assigned_services():
+    assigned_services = db.session.query(
+        AssignedServices,
+        ServicesRequest,
+        ServicesRequest.service_request_id,
+        Customer.first_name,
+        Customer.last_name,
+        Customer.phone,
+        ServicesOffered.name.label('service_name'),
+        ServicesOffered.price.label('service_price'),
+        ServicesOffered.description.label('service_description'),
+    ).join(
+        ServicesRequest,
+        AssignedServices.service_request_id == ServicesRequest.service_request_id
+    ).join(
+        Customer,
+        Customer.customer_id == ServicesRequest.customer_id
+    ).join(
+        ServicesOffered,
+        ServicesOffered.services_offered_id == ServicesRequest.service_offered_id
+    ).options(
+        joinedload(AssignedServices.service_request)
+    ).all()
+
+    result = []
+
+    for assigned_service, service_request, service_request_id, first_name, last_name, customer_phone, service_name, service_price, service_description in assigned_services:
+        service_dict = {
+            'assigned_service_id': assigned_service.assigned_service_id,
+            'service_request_id': assigned_service.assigned_service_id,
+            'technician_first_name': assigned_service.technician.first_name,
+            'technician_last_name': assigned_service.technician.last_name,
+            'technician_email': assigned_service.technician.email,
+            'technician_phone': assigned_service.technician.phone,
+            'service_name': service_name,
+            'service_price': service_price,
+            'service_description': service_description,
+            'proposed_datetime': service_request.proposed_datetime.isoformat() if service_request.proposed_datetime else None,
+            'status': service_request.status,
+            'car_id': service_request.car_id,
+            'service_offered_id': service_request.service_offered_id,
+            'customer_first_name': first_name,
+            'customer_last_name': last_name,
+            'customer_phone': customer_phone
+        }
+        result.append(service_dict)
+
+    return jsonify(result)
+
+# @app.route('/update_assigned_service_requests/<int:service_request_id>', methods=['PATCH'])
+# def update_assigned_service(service_request_id):
+#     # Retrieve the service request from the database
+#     service_request = ServicesRequest.query.get(service_request_id)
+
+#     if not service_request:
+#         return jsonify({'error': 'Service request not found'}), 404
+
+#     # Parse the request body for the new status
+#     data = request.json
+#     new_status = data.get('status')
+
+#     # Update the status of the service request
+#     service_request.status = new_status
+#     db.session.commit()
+
+#     return jsonify({'message': 'assigned service updated successfully'}), 200
+
 
 @app.route('/ServicesPackage', methods=['POST'])
 def getServicePackage():
@@ -762,7 +856,12 @@ def delete_car(car_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+<<<<<<< HEAD
 @app.route('/cars_details', methods=['POST', 'GET'])
+=======
+# handles returning filtered cars that the user selected
+@app.route('/cars_details', methods=['POST'])
+>>>>>>> bffb992f6a323b93447c6df53ab6403297fe4917
 def cars_details():
     if request.method == 'POST':
         data = request.get_json()
