@@ -856,12 +856,8 @@ def delete_car(car_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-<<<<<<< HEAD
+# endpoint to display all cars if no filters applied, and display only filtered cars if there are filters applied
 @app.route('/cars_details', methods=['POST', 'GET'])
-=======
-# handles returning filtered cars that the user selected
-@app.route('/cars_details', methods=['POST'])
->>>>>>> bffb992f6a323b93447c6df53ab6403297fe4917
 def cars_details():
     if request.method == 'POST':
         data = request.get_json()
@@ -897,15 +893,15 @@ def cars_details():
         return jsonify({'cars': cars, 'total_pages': total_pages, 'current_page': page}), 200
     
     elif request.method == 'GET':
-        # Handle displaying all cars with pagination
+        # display all cars on their respective page
         page = request.args.get('page', default=1, type=int)
         per_page = request.args.get('per_page', default=12, type=int)
 
-        # Get cars for the requested page
+        # get the relevant cars meant for each page
         offset = (page - 1) * per_page
         all_cars = Cars.query.order_by(Cars.car_id).offset(offset).limit(per_page).all()
 
-        # Format cars data
+        # data to be returned
         cars = [{
             'car_id': car.car_id,
             'make': car.make,
@@ -916,10 +912,10 @@ def cars_details():
             'image': car.image0
         } for car in all_cars]
 
-        # Get total number of cars
+        # get the total number of cars to display
         total_cars = Cars.query.count()
 
-        # Calculate number of pages
+        # get the number of pages
         total_pages = math.ceil(total_cars / per_page)
 
         return jsonify({'cars': cars, 'total_pages': total_pages, 'current_page': page}), 200
