@@ -549,7 +549,7 @@ def getServicePackage():
     services_list = []
     for service in services:
         services_list.append({
-            'services_offered_id': service.service_package_id,
+            'service_package_id': service.service_package_id,
             'name': service.name,
             'price': service.price,
             'description': service.description,
@@ -1072,7 +1072,9 @@ def AddtoCartAndOwnedService():
     data = request.get_json()
     customer_id = data.get('customer_id')
     packages = data.get('packages')
-
+    car_id = data.get('car_id')
+    print("id",customer_id)
+    print("packages  " ,packages)
     try:
         # Begin a transaction
         db.session.begin()
@@ -1084,7 +1086,7 @@ def AddtoCartAndOwnedService():
                 item_price=package.get("price"),
                 item_name=package.get("name"),
                 item_image=package.get("image"),
-                car_id=None,
+                car_id=car_id,
                 accessoire_id=None,  
                 service_offered_id=None,  
                 service_package_id=package.get("service_package_id")  
@@ -1106,9 +1108,7 @@ def AddtoCartAndOwnedService():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'Service packages added to subscribed services and cart successfully'}), 200
-   
-
-
+        
 
 
 '''IN HALT, make offer system'''
