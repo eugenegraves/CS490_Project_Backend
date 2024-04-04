@@ -1125,7 +1125,31 @@ def AddtoCartAndOwnedService():
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'Service packages added to subscribed services and cart successfully'}), 200
         
+@app.route('/deleteAccessoryManager', methods=['POST'])
+def deleteAccessoryManager():
+    try:
+        if request.is_json:
+            data = request.get_json()
+            accessoryData = data.get('accessoryID')
+            print("Received JSON data:", accessoryData)
+            accessoire_id = accessoryData.get('accessoire_id')
 
+            print("this is the received accessory_id: ", accessoire_id)
+            query = text("DELETE FROM cars_dealershipx.accessoires WHERE accessoire_id = :accessoryID")
+            result = db.session.execute(query, {'accessoryID': accessoire_id})
+            # Commit the transaction
+            db.session.commit()
+
+            # Check if any rows were affected
+            if result.rowcount > 0:
+                return jsonify({'message': 'Accessory deleted successfully'}), 200
+            else:
+                return jsonify({'error': 'Accessory not found'}), 404
+        else:
+            return jsonify({'error': 'Request is not in JSON format'}), 400
+    except Exception as e:
+        # Handle errors appropriately (log, return error response)
+        return jsonify({'error': str(e)}), 500
 
 '''IN HALT, make offer system'''
 @app.route('/make_offer', methods=['POST'])
