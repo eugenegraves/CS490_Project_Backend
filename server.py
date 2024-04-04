@@ -17,10 +17,10 @@ app = Flask(__name__)
 
 #hello
 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -575,6 +575,7 @@ def show_customer_service_requests():
         ServicesOffered.description, ServicesRequest.proposed_datetime,
         ServicesRequest.status, ServicesRequest.car_id,
         ServicesRequest.service_offered_id,
+        Customer.customer_id,
         Customer.usernames,
         Customer.phone
     ).join(
@@ -584,7 +585,7 @@ def show_customer_service_requests():
     ).all()
 
     result = []
-    for request, name, service_price, description, proposed_datetime, status, car_id, service_offered_id, customer_username, customer_phone, in service_requests:
+    for request, name, service_price, description, proposed_datetime, status, car_id, service_offered_id, customer_id, customer_username, customer_phone, in service_requests:
 
         result.append({
             'service_request_id': request.service_request_id,
@@ -595,6 +596,7 @@ def show_customer_service_requests():
             'status': status,
             'car_id': car_id,
             'service_offered_id': service_offered_id,
+            'customer_id': customer_id,
             'customer_username': customer_username,
             'customer_phone': customer_phone
         })
@@ -758,18 +760,32 @@ def add_to_cart():
     item_price = data.get('item_price')
     item_name = data.get('item_name')
     item_image = data.get('item_image')
+    item_service_offered_id = data.get('service_offered_id')
 
     try:
-        new_cart_item = Cart(
-            customer_id=customer_id,
-            item_price=item_price,
-            item_name=item_name,
-            item_image=item_image,
-            car_id=car_id,
-            accessoire_id=None,  
-            service_offered_id=None,  
-            service_package_id=None  
-        )
+        # Conditionally assign service_offered_id based on its presence in the JSON payload
+        if item_service_offered_id is not None:
+            new_cart_item = Cart(
+                customer_id=customer_id,
+                item_price=item_price,
+                item_name=item_name,
+                item_image=item_image,
+                car_id=car_id,
+                accessoire_id=None,  
+                service_offered_id=item_service_offered_id,  
+                service_package_id=None  
+            )
+        else:
+            new_cart_item = Cart(
+                customer_id=customer_id,
+                item_price=item_price,
+                item_name=item_name,
+                item_image=item_image,
+                car_id=car_id,
+                accessoire_id=None,  
+                service_offered_id=None,  
+                service_package_id=None  
+            )
 
         db.session.add(new_cart_item)
         db.session.commit()
@@ -778,7 +794,7 @@ def add_to_cart():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-    
+
 # Create a route to add a new car for a customer
 @app.route('/add_own_car/<int:customer_id>', methods=['POST'])
 def add_car(customer_id):
@@ -1119,7 +1135,76 @@ def AddtoCartAndOwnedService():
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'Service packages added to subscribed services and cart successfully'}), 200
         
+@app.route('/deleteAccessoryManager', methods=['POST'])
+def deleteAccessoryManager():
+    try:
+        if request.is_json:
+            data = request.get_json()
+            accessoryData = data.get('accessoryID')
+            print("Received JSON data:", accessoryData)
+            accessoire_id = accessoryData.get('accessoire_id')
 
+            print("this is the received accessory_id: ", accessoire_id)
+            query = text("DELETE FROM cars_dealershipx.accessoires WHERE accessoire_id = :accessoryID")
+            result = db.session.execute(query, {'accessoryID': accessoire_id})
+            # Commit the transaction
+            db.session.commit()
+
+            # Check if any rows were affected
+            if result.rowcount > 0:
+                return jsonify({'message': 'Accessory deleted successfully'}), 200
+            else:
+                return jsonify({'error': 'Accessory not found'}), 404
+        else:
+            return jsonify({'error': 'Request is not in JSON format'}), 400
+    except Exception as e:
+        # Handle errors appropriately (log, return error response)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/testdrive', methods=['POST'])
+def add_appointment():
+    data = request.json
+
+
+    appointment_date = datetime.strptime(data['appointment_date'], '%Y-%m-%d %H:%M:%S')
+    status = data['status']
+    customer_id = data['customer_id']
+    car_id = data['car_id']
+
+
+    new_appointment = TestDriveAppointment(
+        appointment_date=appointment_date,
+        status=status,
+        customer_id=customer_id,
+        car_id=car_id
+    )
+
+    db.session.add(new_appointment)
+    db.session.commit()
+
+    return jsonify({'message': 'Appointment added successfully'}), 201
+
+@app.route('/test_drive_appointments/<int:customer_id>', methods=['GET'])
+def get_appointments_by_customer(customer_id):
+    appointments = TestDriveAppointment.query.filter_by(customer_id=customer_id).all()
+    if not appointments:
+        return jsonify({'message': 'No appointments found for this customer ID'}), 404
+
+    appointment_list = []
+    for appointment in appointments:
+        car = Cars.query.get(appointment.car_id)  
+        if car:
+            car_name = f"{car.make} {car.model} {car.year}"  
+            appointment_data = {
+                'appointment_id': appointment.appointment_id,
+                'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'status': appointment.status,
+                'customer_id': appointment.customer_id,
+                'car_id': appointment.car_id,
+                'car_name': car_name 
+            }
+            appointment_list.append(appointment_data)
+    return jsonify(appointment_list), 200
 #handle make offer and counter offers
 @app.route('/makeOffer', methods=['POST'])
 def makeOffer():
