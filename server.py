@@ -1151,6 +1151,51 @@ def deleteAccessoryManager():
         # Handle errors appropriately (log, return error response)
         return jsonify({'error': str(e)}), 500
 
+@app.route('/testdrive', methods=['POST'])
+def add_appointment():
+    data = request.json
+
+
+    appointment_date = datetime.strptime(data['appointment_date'], '%Y-%m-%d %H:%M:%S')
+    status = data['status']
+    customer_id = data['customer_id']
+    car_id = data['car_id']
+
+
+    new_appointment = TestDriveAppointment(
+        appointment_date=appointment_date,
+        status=status,
+        customer_id=customer_id,
+        car_id=car_id
+    )
+
+    db.session.add(new_appointment)
+    db.session.commit()
+
+    return jsonify({'message': 'Appointment added successfully'}), 201
+
+@app.route('/test_drive_appointments/<int:customer_id>', methods=['GET'])
+def get_appointments_by_customer(customer_id):
+    appointments = TestDriveAppointment.query.filter_by(customer_id=customer_id).all()
+    if not appointments:
+        return jsonify({'message': 'No appointments found for this customer ID'}), 404
+
+    appointment_list = []
+    for appointment in appointments:
+        car = Cars.query.get(appointment.car_id)  
+        if car:
+            car_name = f"{car.make} {car.model} {car.year}"  
+            appointment_data = {
+                'appointment_id': appointment.appointment_id,
+                'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'status': appointment.status,
+                'customer_id': appointment.customer_id,
+                'car_id': appointment.car_id,
+                'car_name': car_name 
+            }
+            appointment_list.append(appointment_data)
+    return jsonify(appointment_list), 200
+
 '''IN HALT, make offer system'''
 @app.route('/make_offer', methods=['POST'])
 def make_offer():
