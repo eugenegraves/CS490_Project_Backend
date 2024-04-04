@@ -17,10 +17,10 @@ app = Flask(__name__)
 
 #hello
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -1208,19 +1208,23 @@ def get_appointments_by_customer(customer_id):
 #handle make offer and counter offers
 @app.route('/makeOffer', methods=['POST'])
 def makeOffer():
+    result=0
     data = request.get_json()
+    print(data['offer'])
     #counter offer case
     try:
         query = update(Offers).where(and_(Offers.customer_id == data.get('customer_id'), Offers.car_id == data.get('car_id'))).values({Offers.offer_price : data['offer'], Offers.offer_status :"pending"})
-        db.session.execute(query)
-        db.session.commit()
+        result = db.session.execute(query)
+        db.session.commit()   
     except Exception as e:
-        print(str(e))
+        #print(str(e))
         db.session.rollback() 
+        return jsonify({'error': str(e)}), 500
         #first offer case 
+    if(result.rowcount == 0):
         try: 
             new_offer = Offers(
-                offer_price=data.get('offer'),
+                offer_price=data['offer'],
                 offer_status="pending",
                 customer_id=data.get('customer_id'),
                 car_id=data.get('car_id')
@@ -1230,8 +1234,9 @@ def makeOffer():
         except Exception as e:
            db.session.rollback()
            return jsonify({'error': str(e)}), 500
-    return jsonify({'message': 'offer sent'}), 200
-
+        return jsonify({'message': 'offer sent'}), 200
+     #return for counter  offer   
+    return jsonify({'message': 'counter offer sent'}), 200
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
