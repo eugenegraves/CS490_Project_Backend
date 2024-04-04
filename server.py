@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
-from sqlalchemy import text, func, and_
+from sqlalchemy import text, func, and_, update
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 import math
@@ -242,6 +242,16 @@ class AssignedServices(db.Model):
 
     def __repr__(self):
         return f'<AssignedServices assigned_service_id={self.assigned_service_id} technicians_id={self.technicians_id} service_request_id={self.service_request_id}>'
+
+class Offers(db.Model):
+    __tablename__='offers'
+
+    offer_id=db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    offer_price=db.Column(db.Float, nullable=False)
+    offer_status=db.Column(db.String(45), nullable=False)
+    customer_id=db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
+    car_id=db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
+
 
 
 @app.route('/add_customer', methods=['POST'])
@@ -1110,16 +1120,34 @@ def AddtoCartAndOwnedService():
     return jsonify({'message': 'Service packages added to subscribed services and cart successfully'}), 200
         
 
-
-'''IN HALT, make offer system'''
-@app.route('/make_offer', methods=['POST'])
-def make_offer():
+#handle make offer and counter offers
+@app.route('/makeOffer', methods=['POST'])
+def makeOffer():
     data = request.get_json()
-    query_insert = ''' insert into offers values(:offer_id, :offer_price, :offer_status, :customer_id, :car_id)
-    '''
-    query_update = ''' update offers set offer.offer_price = :offer_price, offer.status = :offer_status 
-                      where offers.customer_id = :'''
-    result = db.engine.execute(query_insert, offer_id=data['offer_id'], offer_price=data['offer_status'], customer_id=data['customer_id'], car_id=data['car_id'])
+    #counter offer case
+    try:
+        query = update(Offers).where(and_(Offers.customer_id == data.get('customer_id'), Offers.car_id == data.get('car_id'))).values({Offers.offer_price : data['offer'], Offers.offer_status :"pending"})
+        db.session.execute(query)
+        db.session.commit()
+    except Exception as e:
+        print(str(e))
+        db.session.rollback() 
+        return jsonify({'error': str(e)}), 500
+        first offer case 
+        try: 
+            new_offer = Offers(
+                offer_price=data.get('offer'),
+                offer_status="pending",
+                customer_id=data.get('customer_id'),
+                car_id=data.get('car_id')
+            )
+            db.session.add(new_offer)
+            db.session.commit()
+        except Exception as e:
+           db.session.rollback()
+           return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'offer sent'}), 200
+
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
