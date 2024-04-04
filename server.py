@@ -1217,8 +1217,7 @@ def makeOffer():
     except Exception as e:
         print(str(e))
         db.session.rollback() 
-        return jsonify({'error': str(e)}), 500
-        first offer case 
+        #first offer case 
         try: 
             new_offer = Offers(
                 offer_price=data.get('offer'),
