@@ -1189,9 +1189,7 @@ def add_appointment():
 
     return jsonify({'message': 'Appointment added successfully'}), 201
 
-from flask import jsonify
-
-@app.route('/show_test_drive_appointments', methods=['GET'])
+@app.route('/show_test_drive_appointments', methods=['GET', 'PATCH'])
 def get_appointments():
     appointments = db.session.query(TestDriveAppointment).\
         join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).all()
@@ -1212,6 +1210,24 @@ def get_appointments():
 
     return jsonify(appointment_list)
 
+@app.route('/update_test_drive_appointments/<int:appointment_id>', methods=['PATCH'])
+def update_test_drive_appointments(appointment_id):
+    # Retrieve the service request from the database
+    service_request = TestDriveAppointment.query.get(appointment_id)
+
+    if not service_request:
+        return jsonify({'error': 'Test drive request not found'}), 404
+
+    # Parse the request body for the new status
+    data = request.json
+    new_status = data.get('status')
+
+    # Update the status of the service request
+    service_request.status = new_status
+    db.session.commit()
+
+    # Return a response indicating success
+    return jsonify({'message': 'Test drive request updated successfully'}), 200
 
 @app.route('/test_drive_appointments/<int:customer_id>', methods=['GET'])
 def get_appointments_by_customer(customer_id):
