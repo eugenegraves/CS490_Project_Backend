@@ -1189,20 +1189,29 @@ def add_appointment():
 
     return jsonify({'message': 'Appointment added successfully'}), 201
 
-@app.route('/test_drive_appointments', methods=['GET'])
+from flask import jsonify
+
+@app.route('/show_test_drive_appointments', methods=['GET'])
 def get_appointments():
-    appointments = TestDriveAppointment.query.all()
+    appointments = db.session.query(TestDriveAppointment).\
+        join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).all()
 
     appointment_list = []
     for appointment in appointments:
-        appointment_list.append({
+        appointment_dict = {
             'appointment_id': appointment.appointment_id,
-            'appointment_date': appointment.appointment_date,
+            'appointment_date': appointment.appointment_date.strftime("%a, %d %b %Y %H:%M:%S GMT"),
             'status': appointment.status,
             'customer_id': appointment.customer_id,
-            'car_id': appointment.car_id
-        })
+            'car_id': appointment.car_id,
+            'first_name': appointment.customer.first_name,  # Accessing customer username through the relationship
+            'last_name': appointment.customer.last_name,  # Accessing customer username through the relationship
+            'phone': appointment.customer.phone  # Accessing customer phone through the relationship
+        }
+        appointment_list.append(appointment_dict)
+
     return jsonify(appointment_list)
+
 
 @app.route('/test_drive_appointments/<int:customer_id>', methods=['GET'])
 def get_appointments_by_customer(customer_id):
