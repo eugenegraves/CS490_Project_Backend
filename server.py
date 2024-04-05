@@ -753,7 +753,6 @@ def delete_cart(cartId,car_id,service_package_id,customer_id):
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     data = request.get_json()
-
     # Extract data from the JSON payload
     customer_id = data.get('customer_id')
     car_id = data.get('car_id')
@@ -776,6 +775,11 @@ def add_to_cart():
                 service_package_id=None  
             )
         else:
+            #return 409 if a car is present in the cart
+            result = Cart.query.filter_by(car_id=car_id).first()
+            if(result):
+                return "car already present in cart", 409
+            #end    
             new_cart_item = Cart(
                 customer_id=customer_id,
                 item_price=item_price,
@@ -793,6 +797,7 @@ def add_to_cart():
         return jsonify({'message': 'Car added to cart successfully'}), 200
     except Exception as e:
         db.session.rollback()
+        print("exception    ", str(e))
         return jsonify({'error': str(e)}), 500
 
 # Create a route to add a new car for a customer
