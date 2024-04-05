@@ -1104,8 +1104,8 @@ def AddtoCartAndOwnedService():
     customer_id = data.get('customer_id')
     packages = data.get('packages')
     car_id = data.get('car_id')
-    print("id",customer_id)
-    print("packages  " ,packages)
+    # print("id",customer_id)
+    # print("packages  " ,packages)
     try:
         # Begin a transaction
         db.session.begin()
