@@ -18,9 +18,9 @@ app = Flask(__name__)
 #hello
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -1188,6 +1188,46 @@ def add_appointment():
     db.session.commit()
 
     return jsonify({'message': 'Appointment added successfully'}), 201
+
+@app.route('/show_test_drive_appointments', methods=['GET', 'PATCH'])
+def get_appointments():
+    appointments = db.session.query(TestDriveAppointment).\
+        join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).all()
+
+    appointment_list = []
+    for appointment in appointments:
+        appointment_dict = {
+            'appointment_id': appointment.appointment_id,
+            'appointment_date': appointment.appointment_date.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+            'status': appointment.status,
+            'customer_id': appointment.customer_id,
+            'car_id': appointment.car_id,
+            'first_name': appointment.customer.first_name,  # Accessing customer username through the relationship
+            'last_name': appointment.customer.last_name,  # Accessing customer username through the relationship
+            'phone': appointment.customer.phone  # Accessing customer phone through the relationship
+        }
+        appointment_list.append(appointment_dict)
+
+    return jsonify(appointment_list)
+
+@app.route('/update_test_drive_appointments/<int:appointment_id>', methods=['PATCH'])
+def update_test_drive_appointments(appointment_id):
+    # Retrieve the service request from the database
+    service_request = TestDriveAppointment.query.get(appointment_id)
+
+    if not service_request:
+        return jsonify({'error': 'Test drive request not found'}), 404
+
+    # Parse the request body for the new status
+    data = request.json
+    new_status = data.get('status')
+
+    # Update the status of the service request
+    service_request.status = new_status
+    db.session.commit()
+
+    # Return a response indicating success
+    return jsonify({'message': 'Test drive request updated successfully'}), 200
 
 @app.route('/test_drive_appointments/<int:customer_id>', methods=['GET'])
 def get_appointments_by_customer(customer_id):
