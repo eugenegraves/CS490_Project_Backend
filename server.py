@@ -1223,6 +1223,21 @@ def get_categories():
     categories_data = [{'value': category, 'label': category} for category in categories]
     return jsonify(categories_data), 200
 
+#get the offers and car infos base on offer status
+@app.route('/fetchOffers', methods=['POST'])
+def fetchOffers():
+    data = request.get_json()
+    customer_id = data.get("customer_id")
+    status = data.get("category")
+    try:
+        query = select([Offers,Cars]).where(_and(Offers.car_id == Cars.car_id,Offers.customer_id == customer_id, Offers.status == status))
+        result = db.session.execute(query)
+        offersDic = [{"car_id" : row.car_id, "offer_id":row.offer_id, "make" : row.make, "model" : row.model, "car_image" :row.image0,
+                    "year" : row.year, "offer_price" : row.offer_price, "car_price" :row.price } for row in result]
+        return jsonify(offersDic), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 #handle make offer and counter offers
 @app.route('/makeOffer', methods=['POST'])
