@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 import math
 from math import ceil
 from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import select
 
 
 ''' Connection '''
@@ -18,9 +19,9 @@ app = Flask(__name__)
 #hello
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -1270,13 +1271,15 @@ def fetchOffers():
     customer_id = data.get("customer_id")
     status = data.get("category")
     try:
-        query = select([Offers,Cars]).where(_and(Offers.car_id == Cars.car_id,Offers.customer_id == customer_id, Offers.status == status))
+        query = select(Offers,Cars).where(and_(Offers.car_id == Cars.car_id,Offers.customer_id == customer_id, Offers.offer_status == status))
         result = db.session.execute(query)
-        offersDic = [{"car_id" : row.car_id, "offer_id":row.offer_id, "make" : row.make, "model" : row.model, "car_image" :row.image0,
-                    "year" : row.year, "offer_price" : row.offer_price, "car_price" :row.price } for row in result]
+        offersDic = [{"car_id" : row.Cars.car_id, "offer_id":row.Offers.offer_id, "make" : row.Cars.make, "model" : row.Cars.model, "car_image" :row.Cars.image0,
+                    "year" : row.Cars.year, "offer_price" : row.Offers.offer_price, "car_price" :row.Cars.price } for row in result]
+        # print("dic", offersDic)
         return jsonify(offersDic), 200
     except Exception as e:
         db.session.rollback()
+        print("error  ", str(e))
         return jsonify({'error': str(e)}), 500
 
 #handle make offer and counter offers
