@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import requests
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_cors import CORS
@@ -1315,6 +1316,7 @@ def makeOffer():
      #return for counter  offer   
     return jsonify({'message': 'counter offer sent'}), 200
 
+<<<<<<< HEAD
 @app.route('/acceptOffer',methods=['POST'])
 def AcceptOffer():
     data =  request.get_json()
@@ -1357,6 +1359,25 @@ def RejectOffer():
         print("error", str(e))
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'offer status updated to declined'}), 200
+=======
+@app.route('/receiveFinanceApp', methods=['POST'])
+def receiveApplication():
+    try:
+        data = request.get_json()
+        print(data)
+        sendApplication(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'application recieved'}), 201
+def sendApplication(data):
+    url = 'http://localhost:5001/receive_finance_application'
+    try:
+        response = requests.post(url, json=data)
+        print(response)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'Stub has recieved application'}), 201
+>>>>>>> fb59b716fda438f894a8f230067064575fe81153
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
