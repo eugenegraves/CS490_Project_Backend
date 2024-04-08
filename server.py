@@ -1265,6 +1265,24 @@ def get_categories():
     categories_data = [{'value': category, 'label': category} for category in categories]
     return jsonify(categories_data), 200
 
+
+@app.route('/fetchOffersManager', methods=['POST'])
+def fetchOffersManager():
+    data = request.get_json()
+    status = data.get("category")
+    try:
+        query = select(Offers,Cars).where(and_(Offers.car_id == Cars.car_id, Offers.offer_status == status))
+        result = db.session.execute(query)
+        offersDic = [{"car_id" : row.Cars.car_id, "offer_id":row.Offers.offer_id, "make" : row.Cars.make, "model" : row.Cars.model, "customer_id":row.Offers.customer_id,
+        "car_image" :row.Cars.image0, "year" : row.Cars.year, "offer_price" : row.Offers.offer_price, "car_price" :row.Cars.price } for row in result]
+        # print("dic", offersDic)
+        return jsonify(offersDic), 200
+    except Exception as e:
+        db.session.rollback()
+        print("error  ", str(e))
+        return jsonify({'error': str(e)}), 500
+
+
 #get the offers and car infos base on offer status
 @app.route('/fetchOffers', methods=['POST'])
 def fetchOffers():
@@ -1316,7 +1334,6 @@ def makeOffer():
      #return for counter  offer   
     return jsonify({'message': 'counter offer sent'}), 200
 
-<<<<<<< HEAD
 @app.route('/acceptOffer',methods=['POST'])
 def AcceptOffer():
     data =  request.get_json()
@@ -1359,7 +1376,7 @@ def RejectOffer():
         print("error", str(e))
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'offer status updated to declined'}), 200
-=======
+
 @app.route('/receiveFinanceApp', methods=['POST'])
 def receiveApplication():
     try:
@@ -1377,7 +1394,6 @@ def sendApplication(data):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'Stub has recieved application'}), 201
->>>>>>> fb59b716fda438f894a8f230067064575fe81153
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
