@@ -1273,8 +1273,8 @@ def fetchOffers():
     try:
         query = select(Offers,Cars).where(and_(Offers.car_id == Cars.car_id,Offers.customer_id == customer_id, Offers.offer_status == status))
         result = db.session.execute(query)
-        offersDic = [{"car_id" : row.Cars.car_id, "offer_id":row.Offers.offer_id, "make" : row.Cars.make, "model" : row.Cars.model, "car_image" :row.Cars.image0,
-                    "year" : row.Cars.year, "offer_price" : row.Offers.offer_price, "car_price" :row.Cars.price } for row in result]
+        offersDic = [{"car_id" : row.Cars.car_id, "offer_id":row.Offers.offer_id, "make" : row.Cars.make, "model" : row.Cars.model, "customer_id":row.Offers.customer_id,
+        "car_image" :row.Cars.image0, "year" : row.Cars.year, "offer_price" : row.Offers.offer_price, "car_price" :row.Cars.price } for row in result]
         # print("dic", offersDic)
         return jsonify(offersDic), 200
     except Exception as e:
@@ -1314,6 +1314,49 @@ def makeOffer():
         return jsonify({'message': 'offer sent'}), 200
      #return for counter  offer   
     return jsonify({'message': 'counter offer sent'}), 200
+
+@app.route('/acceptOffer',methods=['POST'])
+def AcceptOffer():
+    data =  request.get_json()
+    print("offerid:  ", data["customer_id"])
+    try:
+        db.session.begin()
+        query = update(Offers).where(Offers.offer_id == data["offer_id"]).values({ Offers.offer_status :"accepted"})
+        result = db.session.execute(query)
+        #add the car to the cart with the oofer price
+        new_cart_item = Cart(
+                customer_id=data.get("customer_id"),
+                item_price=data.get("offer_price"),
+                item_name=data.get("car_name"),
+                item_image=data.get("car_image"),
+                car_id=data.get("car_id"),
+                accessoire_id=None,  
+                service_offered_id=None,  
+                service_package_id=None  
+            )
+
+        db.session.add(new_cart_item)  
+        db.session.commit() 
+    except Exception as e:
+        db.session.rollback()
+        print("error", str(e))
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'offer added to cart and status updated to accepted'}), 200
+
+
+@app.route('/rejectOffer',methods=['POST'])
+def RejectOffer():
+    data =  request.get_json()
+    # print("offerid:  ", data["offer_id"])
+    try:
+        query = update(Offers).where((Offers.offer_id==data["offer_id"])).values({ Offers.offer_status :"declined"})
+        result = db.session.execute(query)
+        db.session.commit() 
+    except Exception as e:
+        db.session.rollback()
+        print("error", str(e))
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'offer status updated to declined'}), 200
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
