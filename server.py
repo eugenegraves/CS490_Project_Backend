@@ -1271,11 +1271,18 @@ def fetchOffersManager():
     data = request.get_json()
     status = data.get("category")
     try:
-        query = select(Offers,Cars).where(and_(Offers.car_id == Cars.car_id, Offers.offer_status == status))
-        result = db.session.execute(query)
-        offersDic = [{"car_id" : row.Cars.car_id, "offer_id":row.Offers.offer_id, "make" : row.Cars.make, "model" : row.Cars.model, "customer_id":row.Offers.customer_id,
-        "car_image" :row.Cars.image0, "year" : row.Cars.year, "offer_price" : row.Offers.offer_price, "car_price" :row.Cars.price } for row in result]
-        # print("dic", offersDic)
+        if(status == "pending"):
+            query = select(Offers,Cars).where(and_(Offers.car_id == Cars.car_id, Offers.offer_status != "rejected",Offers.offer_status != "accepted"))
+            result = db.session.execute(query)
+            offersDic = [{"car_id" : row.Cars.car_id, "offer_id":row.Offers.offer_id, "make" : row.Cars.make, "model" : row.Cars.model, "customer_id":row.Offers.customer_id,
+            "car_image" :row.Cars.image0, "year" : row.Cars.year, "offer_price" : row.Offers.offer_price, "car_price" :row.Cars.price } for row in result]
+            # print("dic", offersDic)
+        else:    
+            query = select(Offers,Cars).where(and_(Offers.car_id == Cars.car_id, Offers.offer_status == status))
+            result = db.session.execute(query)
+            offersDic = [{"car_id" : row.Cars.car_id, "offer_id":row.Offers.offer_id, "make" : row.Cars.make, "model" : row.Cars.model, "customer_id":row.Offers.customer_id,
+            "car_image" :row.Cars.image0, "year" : row.Cars.year, "offer_price" : row.Offers.offer_price, "car_price" :row.Cars.price } for row in result]
+            # print("dic", offersDic)
         return jsonify(offersDic), 200
     except Exception as e:
         db.session.rollback()
@@ -1309,7 +1316,7 @@ def makeOffer():
     print(data['offer'])
     #counter offer case
     try:
-        query = update(Offers).where(and_(Offers.customer_id == data.get('customer_id'), Offers.car_id == data.get('car_id'))).values({Offers.offer_price : data['offer'], Offers.offer_status :"pending"})
+        query = update(Offers).where(and_(Offers.customer_id == data.get('customer_id'), Offers.car_id == data.get('car_id'))).values({Offers.offer_price : data['offer'], Offers.offer_status :"countered"})
         result = db.session.execute(query)
         db.session.commit()   
     except Exception as e:
