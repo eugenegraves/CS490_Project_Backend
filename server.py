@@ -21,8 +21,8 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -371,6 +371,30 @@ def login_technicians():
         }), 200
     else:
         return jsonify({'error': 'Invalid technician ID, password, or first name'}), 401
+
+# IN DEVELOPMENT
+@app.route('/get_available_technicians', methods=['GET'])
+def get_available_technicians():
+    result = db.session.query(
+        Technicians.technicians_id,
+        func.ifnull(func.count(AssignedServices.service_request_id), 0).label('job_count')
+    ).outerjoin(
+        AssignedServices, Technicians.technicians_id == AssignedServices.technicians_id
+    ).group_by(
+        Technicians.technicians_id
+    ).having(
+        func.count(AssignedServices.service_request_id) <= 7
+    ).all()
+
+    available_technicians = [
+        {'technician_id': tech_id, 'job_count': count} for tech_id, count in result
+    ]
+
+    return jsonify(available_technicians)
+
+#@app.route('/assign_technicians', methods=['POST'])
+#def assign_technicians():
+    
 
 @app.route('/login_managers', methods=['POST'])
 def login_managers():
