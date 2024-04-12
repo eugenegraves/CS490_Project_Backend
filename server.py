@@ -907,7 +907,7 @@ def delete_car(car_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# endpoint to display all cars if no filters applied, and display only filtered cars if there are filters applied
+# endpoint to display all cars if no filters applied, and display only filtered cars if there are filters applied. Only show cars that are available
 @app.route('/cars_details', methods=['POST', 'GET'])
 def cars_details():
     if request.method == 'POST':
@@ -1405,17 +1405,22 @@ def RejectOffer():
 def receiveApplication():
     try:
         data = request.get_json()
+        print(data)
+        sendApplication(data)
         response = sendApplication(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'application recieved'}), 201
     print(response)
     return response
 def sendApplication(data):
     url = 'http://localhost:5001/receive_finance_application'
     try:
         response = requests.post(url, json=data)
+        print(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'Stub has recieved application'}), 201
     return response.json()
 
 if __name__ == "__main__":
