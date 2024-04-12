@@ -21,14 +21,10 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-<<<<<<< HEAD
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-=======
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
->>>>>>> 53ac45fd53d5eb109c5a6a595f6d93264877f712
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -176,6 +172,7 @@ class Cars(db.Model):
     image2 = db.Column(db.String(1000), nullable=False)
     image3 = db.Column(db.String(1000), nullable=False)
     image4 = db.Column(db.String(1000), nullable=False)
+    available = db.Column(db.Integer, nullable=False)
     cart_items = db.relationship('Cart', backref='car', lazy=True)
 
 class Cart(db.Model):
@@ -257,8 +254,6 @@ class Offers(db.Model):
     offer_status=db.Column(db.String(45), nullable=False)
     customer_id=db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
     car_id=db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
-
-
 
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
@@ -923,7 +918,7 @@ def cars_details():
         page = data.get('page', 1)  # Default to first page
         per_page = data.get('per_page', 12)  # Default to 12 cars per page
 
-        filtered_cars = Cars.query
+        filtered_cars = Cars.query.filter(Cars.available==1)
 
         if make:
             filtered_cars = filtered_cars.filter(Cars.make == make)
@@ -963,7 +958,7 @@ def cars_details():
 
         # get the relevant cars meant for each page
         offset = (page - 1) * per_page
-        all_cars = Cars.query.order_by(Cars.car_id).offset(offset).limit(per_page).all()
+        all_cars = Cars.query.filter(Cars.available==1).order_by(Cars.car_id).offset(offset).limit(per_page).all()
 
         # data to be returned
         cars = [{
