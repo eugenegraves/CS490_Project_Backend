@@ -21,14 +21,11 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-<<<<<<< HEAD
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-=======
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
->>>>>>> 53ac45fd53d5eb109c5a6a595f6d93264877f712
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -1389,6 +1386,71 @@ def AcceptOffer():
         print("error", str(e))
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'offer added to cart and status updated to accepted'}), 200
+
+
+#humza working
+@app.route('/view_customer_service_details/<int:assigned_service_id>', methods=['GET'])
+def view_customer_service_details(assigned_service_id):
+    try:
+        # Retrieve the service request details from the database
+        query = text("SELECT aas.assigned_service_id, sr.service_request_id, c.make, c.model, ct.first_name, ct.last_name, so.name, so.price, so.description FROM cars_dealershipx.services_request sr join cars_dealershipx.cars c on sr.car_id = c.car_id join cars_dealershipx.customers ct on sr.customer_id = ct.customer_id join cars_dealershipx.services_offered so on sr.service_offered_id = so.services_offered_id join cars_dealershipx.assigned_services aas on sr.service_request_id = aas.service_request_id where aas.assigned_service_id = :serviceID")
+        result = db.session.execute(query, {'serviceID': assigned_service_id})
+        rows = result.fetchall()
+
+        # Check if the service request details were found
+        if not rows:
+            return jsonify({'error': 'Service details not found'}), 404
+
+        # Construct ticket details
+        ticket_details = [{'assigned_service_id': row[0],
+                           'service_request_id': row[1],
+                           'car_make': row[2],
+                           'car_model': row[3],
+                           'customer_first_name': row[4],
+                           'customer_last_name': row[5],
+                           'service_name': row[6],
+                           'service_price': row[7],
+                           'service_description': row[8]}
+                          for row in rows]
+
+        return jsonify(ticket_details), 200
+    except Exception as e:
+        # Handle errors
+        print('Error fetching service details:', e)
+        return jsonify({'error': 'Failed to fetch service details'}), 500
+    
+
+@app.route('/submitReport', methods=['POST'])
+def submitReport():
+    try:
+        if request.is_json:
+            data = request.get_json()
+            report = data.get('report')
+            assigned_service_id = data.get('assigned_service_id')
+            if report is None or assigned_service_id is None:
+                return jsonify({'error': 'Missing report or assigned_service_id in JSON data'}), 400
+            
+            print("Received JSON data:", report)
+            print("Received JSON data:", assigned_service_id)
+            
+            query = text('''INSERT INTO cars_dealershipx.service_report (assigned_service_id, report) 
+                           VALUES (:assignedServiceId, :report)''')
+            result = db.session.execute(query, {'assignedServiceId': assigned_service_id, 'report': report})
+            print("Result row count:", result.rowcount)
+            
+            db.session.commit()
+            
+            if result.rowcount > 0:
+                return jsonify({'message': 'Feedback added successfully'}), 200
+            else:
+                return jsonify({'error': 'Unsuccessful execution of query for feedback'}), 400
+        else:
+            return jsonify({'error': 'Request is not in JSON format'}), 400
+    except Exception as e:
+        # Log the error for debugging purposes
+        print("An error occurred:", e)
+        # Handle errors appropriately (log, return error response)
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @app.route('/rejectOffer',methods=['POST'])
