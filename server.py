@@ -374,11 +374,17 @@ def login_technicians():
 # IN DEVELOPMENT
 @app.route('/get_available_technicians', methods=['GET'])
 def get_available_technicians():
+    selected_date = request.args.get('date', default=datetime.today().strftime('%Y-%m-%d'), type=str)
+
     result = db.session.query(
         Technicians.technicians_id,
-        func.ifnull(func.count(AssignedServices.service_request_id), 0).label('job_count')
+        func.count(AssignedServices.service_request_id).label('job_count')
     ).outerjoin(
-        AssignedServices, Technicians.technicians_id == AssignedServices.technicians_id
+        AssignedServices,
+        db.and_(
+            Technicians.technicians_id == AssignedServices.technicians_id,
+            db.func.date(AssignedServices.proposed_datetime) == selected_date
+        )
     ).group_by(
         Technicians.technicians_id
     ).having(
