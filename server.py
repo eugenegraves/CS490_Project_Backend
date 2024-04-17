@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import requests
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
@@ -23,7 +24,7 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -371,11 +372,23 @@ def login_technicians():
     else:
         return jsonify({'error': 'Invalid technician ID, password, or first name'}), 401
 
-# IN DEVELOPMENT
+# get all available technicians on a specific day
 @app.route('/get_available_technicians', methods=['GET'])
 def get_available_technicians():
+    # If not date passed, default date = today's date
     selected_date = request.args.get('date', default=datetime.today().strftime('%Y-%m-%d'), type=str)
 
+    # Convert the date into a readable format
+    try:
+        selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD format."}), 400
+
+    # specify start of day and end of day
+    day_start = datetime(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day)
+    day_end = datetime(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day, 23, 59, 59)
+
+    # Only display technicians if they have less than 7 jobs that day
     result = db.session.query(
         Technicians.technicians_id,
         func.count(AssignedServices.service_request_id).label('job_count')
@@ -383,7 +396,13 @@ def get_available_technicians():
         AssignedServices,
         db.and_(
             Technicians.technicians_id == AssignedServices.technicians_id,
-            db.func.date(AssignedServices.proposed_datetime) == selected_date
+            AssignedServices.service_request.has(
+                db.and_(
+                    ServicesRequest.proposed_datetime >= day_start,
+                    ServicesRequest.proposed_datetime <= day_end,
+                    ServicesRequest.status == 'accepted'
+                )
+            )
         )
     ).group_by(
         Technicians.technicians_id
@@ -392,15 +411,40 @@ def get_available_technicians():
     ).all()
 
     available_technicians = [
-        {'technician_id': tech_id, 'job_count': count} for tech_id, count in result
+        {'technician_id': tech_id, 'job_count': job_count} for tech_id, job_count in result
     ]
 
+    # Return the list of available technicians
     return jsonify(available_technicians)
 
-#@app.route('/assign_technicians', methods=['POST'])
-#def assign_technicians():
-    
+@app.route('/assign_technicians', methods=['POST'])
+def assign_technicians():
+    # Extract technician_id and service_request_id from the POST data
+    data = request.get_json()
+    technician_id = data.get('technician_id')
+    service_request_id = data.get('service_request_id')
 
+    if not technician_id or not service_request_id:
+        return jsonify({"error": "Missing data for technician or service request"}), 400
+
+    # Check if the service request is in an acceptable state to be assigned
+    service_request = ServicesRequest.query.filter_by(service_request_id=service_request_id).first()
+    if not service_request or service_request.status != 'accepted':
+        return jsonify({"error": "Service request not available for assignment or not in accepted state"}), 404
+
+    # Create a new AssignedServices entry
+    try:
+        new_assignment = AssignedServices(
+            technicians_id=technician_id,
+            service_request_id=service_request_id
+        )
+        db.session.add(new_assignment)
+        db.session.commit()
+        return jsonify({"message": "Technician successfully assigned to service request"}), 201
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
 @app.route('/login_managers', methods=['POST'])
 def login_managers():
     data = request.get_json()
