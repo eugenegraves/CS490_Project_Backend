@@ -23,8 +23,8 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -1465,6 +1465,25 @@ def RejectOffer():
         print("error", str(e))
         return jsonify({'error': str(e)}), 500
     return jsonify({'message': 'offer status updated to declined'}), 200
+
+
+@app.route('/getAccessoryCategoryManager', methods=['GET'])
+def getAccessoryCategoryManager():
+    try:
+        # Use DISTINCT to get unique categories
+        query = text("SELECT DISTINCT category FROM cars_dealershipx.accessoires")
+        result = db.session.execute(query)
+        rows = result.fetchall()
+        
+        # Extract categories from rows
+        categories = [row[0] for row in rows]
+
+        # Return categories as JSON response
+        return jsonify(categories), 200
+    except Exception as e:
+        # Handle errors appropriately (log, return error response)
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/receiveFinanceApp', methods=['POST'])
 def receiveApplication():
