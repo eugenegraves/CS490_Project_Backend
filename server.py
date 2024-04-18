@@ -1550,7 +1550,6 @@ def receiveApplication():
         response = sendApplication(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    return jsonify({'message': 'application recieved'}), 201
     print(response)
     return response
 def sendApplication(data):
@@ -1560,7 +1559,6 @@ def sendApplication(data):
         print(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    return jsonify({'message': 'Stub has recieved application'}), 201
     return response.json()
 
 if __name__ == "__main__":
