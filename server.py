@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
 from sqlalchemy import text, func, and_, update
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 import math
 from math import ceil
@@ -372,49 +372,82 @@ def login_technicians():
     else:
         return jsonify({'error': 'Invalid technician ID, password, or first name'}), 401
 
+
+@app.route('/get_upcoming_week_requests', methods=['GET'])
+def get_upcoming_week_requests():
+    today = datetime.today()
+    week_start = datetime(today.year, today.month, today.day)
+    week_end = week_start + timedelta(days=7)
+
+    # Join ServicesRequest with ServicesOffered and AssignedServices with Technicians
+    service_requests = db.session.query(
+        ServicesRequest.service_request_id,
+        ServicesRequest.proposed_datetime,
+        ServicesOffered.name.label('service_name'),
+        Technicians.first_name,
+        Technicians.last_name
+    ).join(
+        ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
+    ).outerjoin(
+        AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
+    ).outerjoin(
+        Technicians, AssignedServices.technicians_id == Technicians.technicians_id
+    ).filter(
+        ServicesRequest.proposed_datetime >= week_start,
+        ServicesRequest.proposed_datetime < week_end,
+        ServicesRequest.status == 'accepted'
+    ).all()
+
+    # Prepare the data for the response
+    accepted_requests = [
+        {
+            'service_request_id': req.service_request_id,
+            'date': req.proposed_datetime.strftime('%Y-%m-%d'),
+            'service_name': req.service_name,
+            'technician_name': f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned"
+        } for req in service_requests
+    ]
+
+    return jsonify({
+        'accepted_service_requests': accepted_requests
+    })
+    
 # get all available technicians on a specific day
 @app.route('/get_available_technicians', methods=['GET'])
 def get_available_technicians():
-    # If not date passed, default date = today's date
     selected_date = request.args.get('date', default=datetime.today().strftime('%Y-%m-%d'), type=str)
-
-    # Convert the date into a readable format
     try:
         selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d')
     except ValueError:
         return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD format."}), 400
 
-    # specify start of day and end of day
     day_start = datetime(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day)
     day_end = datetime(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day, 23, 59, 59)
 
-    # Only display technicians if they have less than 7 jobs that day
-    result = db.session.query(
+    # Query to fetch technicians and their job counts
+    technicians = db.session.query(
         Technicians.technicians_id,
+        Technicians.first_name,
+        Technicians.last_name,
         func.count(AssignedServices.service_request_id).label('job_count')
     ).outerjoin(
         AssignedServices,
-        db.and_(
-            Technicians.technicians_id == AssignedServices.technicians_id,
-            AssignedServices.service_request.has(
-                db.and_(
-                    ServicesRequest.proposed_datetime >= day_start,
-                    ServicesRequest.proposed_datetime <= day_end,
-                    ServicesRequest.status == 'accepted'
-                )
-            )
-        )
+        AssignedServices.technicians_id == Technicians.technicians_id
+    ).outerjoin(
+        ServicesRequest,
+        (AssignedServices.service_request_id == ServicesRequest.service_request_id) &
+        (ServicesRequest.proposed_datetime >= day_start) &
+        (ServicesRequest.proposed_datetime <= day_end) &
+        (ServicesRequest.status == 'accepted')
     ).group_by(
         Technicians.technicians_id
-    ).having(
-        func.count(AssignedServices.service_request_id) <= 7
     ).all()
 
     available_technicians = [
-        {'technician_id': tech_id, 'job_count': job_count} for tech_id, job_count in result
+        {'technician_id': tech_id, 'full_name': f"{first_name} {last_name}", 'job_count': job_count}
+        for tech_id, first_name, last_name, job_count in technicians
     ]
 
-    # Return the list of available technicians
     return jsonify(available_technicians)
 
 @app.route('/assign_technicians', methods=['POST'])
@@ -1543,7 +1576,6 @@ def receiveApplication():
         response = sendApplication(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    return jsonify({'message': 'application recieved'}), 201
     print(response)
     return response
 def sendApplication(data):
@@ -1553,7 +1585,6 @@ def sendApplication(data):
         print(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    return jsonify({'message': 'Stub has recieved application'}), 201
     return response.json()
 
 if __name__ == "__main__":
