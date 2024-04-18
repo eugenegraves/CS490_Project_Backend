@@ -1567,6 +1567,62 @@ def getAccessoryCategoryManager():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/getCarMakeManager', methods=['GET'])
+def getCarMakeManager():
+    try:
+        # Use DISTINCT to get unique car makers
+        query = text("SELECT distinct make from cars_dealershipx.cars")
+        result = db.session.execute(query)
+        rows = result.fetchall()
+        
+        # Extract car makers from rows
+        carMakers = [row[0] for row in rows]
+
+        # Return car makers as JSON response
+        return jsonify(carMakers), 200
+    except Exception as e:
+        # Handle errors appropriately (log, return error response)
+        return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/fetchCarByMake', methods=['POST'])
+def fetchCarByMake():
+    try:
+        carMake = request.get_json()['carMake']
+        # Use DISTINCT to get unique car model
+        query = text("SELECT car_id, make, model, year, color, available FROM cars_dealershipx.cars where make = :carMake and available = 1;")
+        result = db.session.execute(query, {'carMake': carMake})
+        rows = result.fetchall()
+        
+        # Extract car details from rows
+        # carModel = [row[0] for row in rows]
+        carDetails = [{'car_id': row[0], 'make': row[1], 'model': row[2], 'year': row[3], 'color': row[4], 'available': row[5]} for row in rows]
+
+        # Return car model as JSON response
+        return jsonify(carDetails), 200
+    except Exception as e:
+        # Handle errors appropriately (log, return error response)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/deleteCarManager', methods=['POST'])
+def deleteCarManager():
+    try:
+        carID = request.get_json()['carID']  # Use MultiDict for validation
+        print("this is the received carID: ", carID)
+        query = text("DELETE FROM cars_dealershipx.cars WHERE car_id = :carID")
+        result = db.session.execute(query, {'carID': carID})
+        # Commit the transaction
+        db.session.commit()
+
+        # Check if any rows were affected
+        if result.rowcount > 0:
+            return jsonify({'message': 'Car deleted successfully'}), 200
+        else:
+            return jsonify({'error': 'Car not found'}), 404
+    except Exception as e:
+        # Handle errors appropriately (log, return error response)
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/receiveFinanceApp', methods=['POST'])
 def receiveApplication():
     try:
