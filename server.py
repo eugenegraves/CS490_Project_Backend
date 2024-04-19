@@ -1509,20 +1509,27 @@ def submitReport():
             data = request.get_json()
             report = data.get('report')
             assigned_service_id = data.get('assigned_service_id')
+            status = data.get('status')
+            request_id = data.get('request_id')
+
             if report is None or assigned_service_id is None:
                 return jsonify({'error': 'Missing report or assigned_service_id in JSON data'}), 400
             
             print("Received JSON data:", report)
             print("Received JSON data:", assigned_service_id)
             
-            query = text('''INSERT INTO cars_dealershipx.service_report (assigned_service_id, report) 
+            query_insert = text('''INSERT INTO cars_dealershipx.service_report (assigned_service_id, report) 
                            VALUES (:assignedServiceId, :report)''')
-            result = db.session.execute(query, {'assignedServiceId': assigned_service_id, 'report': report})
-            print("Result row count:", result.rowcount)
+            result_insert = db.session.execute(query_insert, {'assignedServiceId': assigned_service_id, 'report': report})
+            print("Result row count for insert:", result_insert.rowcount)
             
+            query_update = text('''UPDATE services_request SET status = :status WHERE service_request_id = :request_id''')
+            result_update = db.session.execute(query_update, {'status': status, 'request_id': request_id})
+            print("Result row count for update:", result_update.rowcount)
+        
             db.session.commit()
             
-            if result.rowcount > 0:
+            if result_insert.rowcount > 0 and result_update.rowcount > 0:
                 return jsonify({'message': 'Feedback added successfully'}), 200
             else:
                 return jsonify({'error': 'Unsuccessful execution of query for feedback'}), 400
@@ -1533,7 +1540,6 @@ def submitReport():
         print("An error occurred:", e)
         # Handle errors appropriately (log, return error response)
         return jsonify({'error': 'Internal Server Error'}), 500
-
 
 @app.route('/rejectOffer',methods=['POST'])
 def RejectOffer():
