@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
-from sqlalchemy import text, func, and_, update, or_, case
+from sqlalchemy import text, func, and_, update
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 import math
@@ -150,14 +150,12 @@ class OwnCar(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'))
     make = db.Column(db.String(50))
     model = db.Column(db.String(50))
-    year = db.Column(db.Integer)
 
-    def __init__(self, car_id, customer_id, make, model, year):
+    def __init__(self, car_id, customer_id, make, model):
         self.car_id = car_id
         self.customer_id = customer_id
         self.make = make
         self.model = model
-        self.year = year
 
 class Cars(db.Model):
     __tablename__ = 'cars'
@@ -374,55 +372,44 @@ def login_technicians():
     else:
         return jsonify({'error': 'Invalid technician ID, password, or first name'}), 401
 
-# returns all the service requests in the next week
+
 @app.route('/get_upcoming_week_requests', methods=['GET'])
 def get_upcoming_week_requests():
     today = datetime.today()
     week_start = datetime(today.year, today.month, today.day)
     week_end = week_start + timedelta(days=7)
 
+    # Join ServicesRequest with ServicesOffered and AssignedServices with Technicians
     service_requests = db.session.query(
         ServicesRequest.service_request_id,
         ServicesRequest.proposed_datetime,
-        ServicesRequest.status,
         ServicesOffered.name.label('service_name'),
         Technicians.first_name,
-        Technicians.last_name,
-        OwnCar.make,
-        OwnCar.model,
-        OwnCar.year
+        Technicians.last_name
     ).join(
         ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
     ).outerjoin(
         AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
     ).outerjoin(
         Technicians, AssignedServices.technicians_id == Technicians.technicians_id
-    ).join(
-        OwnCar, ServicesRequest.car_id == OwnCar.car_id
     ).filter(
         ServicesRequest.proposed_datetime >= week_start,
         ServicesRequest.proposed_datetime < week_end,
+        ServicesRequest.status == 'accepted'
     ).all()
 
-    # Splitting requests into accepted and assigned
-    accepted_requests = []
-    assigned_requests = []
-    for req in service_requests:
-        request_dict = {
+    # Prepare the data for the response
+    accepted_requests = [
+        {
             'service_request_id': req.service_request_id,
-            'date_time': req.proposed_datetime.strftime('%Y-%m-%d %H:%M'),
+            'date': req.proposed_datetime.strftime('%Y-%m-%d'),
             'service_name': req.service_name,
-            'technician_name': f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned",
-            'car_info': {'make': req.make, 'model': req.model, 'year': req.year}
-        }
-        if req.status == 'accepted':
-            accepted_requests.append(request_dict)
-        elif req.status == 'assigned':
-            assigned_requests.append(request_dict)
+            'technician_name': f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned"
+        } for req in service_requests
+    ]
 
     return jsonify({
-        'accepted_service_requests': accepted_requests,
-        'assigned_service_requests': assigned_requests
+        'accepted_service_requests': accepted_requests
     })
     
 # get all available technicians on a specific day
@@ -437,21 +424,21 @@ def get_available_technicians():
     day_start = datetime(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day)
     day_end = datetime(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day, 23, 59, 59)
 
-    # checks how many jobs a technician has on a day selected 
+    # Query to fetch technicians and their job counts
     technicians = db.session.query(
         Technicians.technicians_id,
         Technicians.first_name,
         Technicians.last_name,
-        func.count(case(
-            (ServicesRequest.proposed_datetime.between(day_start, day_end), AssignedServices.service_request_id),
-            else_=None  
-        )).label('job_count')
+        func.count(AssignedServices.service_request_id).label('job_count')
     ).outerjoin(
         AssignedServices,
         AssignedServices.technicians_id == Technicians.technicians_id
     ).outerjoin(
         ServicesRequest,
-        AssignedServices.service_request_id == ServicesRequest.service_request_id
+        (AssignedServices.service_request_id == ServicesRequest.service_request_id) &
+        (ServicesRequest.proposed_datetime >= day_start) &
+        (ServicesRequest.proposed_datetime <= day_end) &
+        (ServicesRequest.status == 'accepted')
     ).group_by(
         Technicians.technicians_id
     ).all()
@@ -463,9 +450,9 @@ def get_available_technicians():
 
     return jsonify(available_technicians)
 
-# assign a technician to a particular job and modify the status to "assigned"
 @app.route('/assign_technicians', methods=['POST'])
 def assign_technicians():
+    # Extract technician_id and service_request_id from the POST data
     data = request.get_json()
     technician_id = data.get('technician_id')
     service_request_id = data.get('service_request_id')
@@ -473,14 +460,12 @@ def assign_technicians():
     if not technician_id or not service_request_id:
         return jsonify({"error": "Missing data for technician or service request"}), 400
 
+    # Check if the service request is in an acceptable state to be assigned
     service_request = ServicesRequest.query.filter_by(service_request_id=service_request_id).first()
     if not service_request or service_request.status != 'accepted':
         return jsonify({"error": "Service request not available for assignment or not in accepted state"}), 404
 
-    # update the status to 'assigned'
-    service_request.status = 'assigned'
-
-    # create a new AssignedServices entry
+    # Create a new AssignedServices entry
     try:
         new_assignment = AssignedServices(
             technicians_id=technician_id,
@@ -1485,12 +1470,11 @@ def AcceptOffer():
     return jsonify({'message': 'offer added to cart and status updated to accepted'}), 200
 
 
-#humza working
 @app.route('/view_customer_service_details/<int:assigned_service_id>', methods=['GET'])
 def view_customer_service_details(assigned_service_id):
     try:
         # Retrieve the service request details from the database
-        query = text("SELECT aas.assigned_service_id, sr.service_request_id, c.make, c.model, ct.first_name, ct.last_name, so.name, so.price, so.description FROM cars_dealershipx.services_request sr join cars_dealershipx.cars c on sr.car_id = c.car_id join cars_dealershipx.customers ct on sr.customer_id = ct.customer_id join cars_dealershipx.services_offered so on sr.service_offered_id = so.services_offered_id join cars_dealershipx.assigned_services aas on sr.service_request_id = aas.service_request_id where aas.assigned_service_id = :serviceID")
+        query = text("SELECT aas.assigned_service_id, sr.service_request_id, c.make, c.model, ct.first_name, ct.last_name, so.name, so.price, so.description, srp.report FROM cars_dealershipx.services_request sr join cars_dealershipx.cars c on sr.car_id = c.car_id join cars_dealershipx.customers ct on sr.customer_id = ct.customer_id join cars_dealershipx.services_offered so on sr.service_offered_id = so.services_offered_id join cars_dealershipx.assigned_services aas on sr.service_request_id = aas.service_request_id left join cars_dealershipx.service_report srp on aas.assigned_service_id = srp.assigned_service_id where aas.assigned_service_id = :serviceID")
         result = db.session.execute(query, {'serviceID': assigned_service_id})
         rows = result.fetchall()
 
@@ -1507,7 +1491,8 @@ def view_customer_service_details(assigned_service_id):
                            'customer_last_name': row[5],
                            'service_name': row[6],
                            'service_price': row[7],
-                           'service_description': row[8]}
+                           'service_description': row[8],
+                           'report': row[9]}  # Added 'report' field
                           for row in rows]
 
         return jsonify(ticket_details), 200
@@ -1515,7 +1500,7 @@ def view_customer_service_details(assigned_service_id):
         # Handle errors
         print('Error fetching service details:', e)
         return jsonify({'error': 'Failed to fetch service details'}), 500
-    
+
 
 @app.route('/submitReport', methods=['POST'])
 def submitReport():
@@ -1530,24 +1515,30 @@ def submitReport():
             if report is None or assigned_service_id is None:
                 return jsonify({'error': 'Missing report or assigned_service_id in JSON data'}), 400
             
-            print("Received JSON data:", report)
-            print("Received JSON data:", assigned_service_id)
-            
-            query_insert = text('''INSERT INTO cars_dealershipx.service_report (assigned_service_id, report) 
-                           VALUES (:assignedServiceId, :report)''')
-            result_insert = db.session.execute(query_insert, {'assignedServiceId': assigned_service_id, 'report': report})
-            print("Result row count for insert:", result_insert.rowcount)
-            
-            query_update = text('''UPDATE services_request SET status = :status WHERE service_request_id = :request_id''')
-            result_update = db.session.execute(query_update, {'status': status, 'request_id': request_id})
-            print("Result row count for update:", result_update.rowcount)
-        
-            db.session.commit()
-            
-            if result_insert.rowcount > 0 and result_update.rowcount > 0:
-                return jsonify({'message': 'Feedback added successfully'}), 200
+            existing_report = db.session.execute(
+                text('''SELECT report FROM cars_dealershipx.service_report WHERE assigned_service_id = :assignedServiceId'''), 
+                {'assignedServiceId': assigned_service_id}
+            ).fetchone()
+
+            if existing_report:
+                existing_report_text = existing_report[0]  # Access the first element of the tuple
+                updated_report = existing_report_text + '\n' + report
+                query_update_report = text('''UPDATE cars_dealershipx.service_report SET report = :updatedReport WHERE assigned_service_id = :assignedServiceId''')
+                db.session.execute(query_update_report, {'updatedReport': updated_report, 'assignedServiceId': assigned_service_id})
+                print("Report appended successfully.")
             else:
-                return jsonify({'error': 'Unsuccessful execution of query for feedback'}), 400
+                query_insert = text('''INSERT INTO cars_dealershipx.service_report (assigned_service_id, report) 
+                               VALUES (:assignedServiceId, :report)''')
+                db.session.execute(query_insert, {'assignedServiceId': assigned_service_id, 'report': report})
+                print("New report inserted successfully.")
+
+            query_update_status = text('''UPDATE services_request SET status = :status WHERE service_request_id = :request_id''')
+            db.session.execute(query_update_status, {'status': status, 'request_id': request_id})
+            print("Status updated successfully.")
+
+            db.session.commit()
+
+            return jsonify({'message': 'Feedback added successfully'}), 200
         else:
             return jsonify({'error': 'Request is not in JSON format'}), 400
     except Exception as e:
@@ -1555,7 +1546,7 @@ def submitReport():
         print("An error occurred:", e)
         # Handle errors appropriately (log, return error response)
         return jsonify({'error': 'Internal Server Error'}), 500
-
+    
 @app.route('/rejectOffer',methods=['POST'])
 def RejectOffer():
     data =  request.get_json()
