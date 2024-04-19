@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
-from sqlalchemy import text, func, and_, update
+from sqlalchemy import text, func, and_, update, or_, case
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 import math
@@ -150,12 +150,14 @@ class OwnCar(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'))
     make = db.Column(db.String(50))
     model = db.Column(db.String(50))
+    year = db.Column(db.Integer)
 
-    def __init__(self, car_id, customer_id, make, model):
+    def __init__(self, car_id, customer_id, make, model, year):
         self.car_id = car_id
         self.customer_id = customer_id
         self.make = make
         self.model = model
+        self.year = year
 
 class Cars(db.Model):
     __tablename__ = 'cars'
@@ -372,44 +374,55 @@ def login_technicians():
     else:
         return jsonify({'error': 'Invalid technician ID, password, or first name'}), 401
 
-
+# returns all the service requests in the next week
 @app.route('/get_upcoming_week_requests', methods=['GET'])
 def get_upcoming_week_requests():
     today = datetime.today()
     week_start = datetime(today.year, today.month, today.day)
     week_end = week_start + timedelta(days=7)
 
-    # Join ServicesRequest with ServicesOffered and AssignedServices with Technicians
     service_requests = db.session.query(
         ServicesRequest.service_request_id,
         ServicesRequest.proposed_datetime,
+        ServicesRequest.status,
         ServicesOffered.name.label('service_name'),
         Technicians.first_name,
-        Technicians.last_name
+        Technicians.last_name,
+        OwnCar.make,
+        OwnCar.model,
+        OwnCar.year
     ).join(
         ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
     ).outerjoin(
         AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
     ).outerjoin(
         Technicians, AssignedServices.technicians_id == Technicians.technicians_id
+    ).join(
+        OwnCar, ServicesRequest.car_id == OwnCar.car_id
     ).filter(
         ServicesRequest.proposed_datetime >= week_start,
         ServicesRequest.proposed_datetime < week_end,
-        ServicesRequest.status == 'accepted'
     ).all()
 
-    # Prepare the data for the response
-    accepted_requests = [
-        {
+    # Splitting requests into accepted and assigned
+    accepted_requests = []
+    assigned_requests = []
+    for req in service_requests:
+        request_dict = {
             'service_request_id': req.service_request_id,
-            'date': req.proposed_datetime.strftime('%Y-%m-%d'),
+            'date_time': req.proposed_datetime.strftime('%Y-%m-%d %H:%M'),
             'service_name': req.service_name,
-            'technician_name': f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned"
-        } for req in service_requests
-    ]
+            'technician_name': f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned",
+            'car_info': {'make': req.make, 'model': req.model, 'year': req.year}
+        }
+        if req.status == 'accepted':
+            accepted_requests.append(request_dict)
+        elif req.status == 'assigned':
+            assigned_requests.append(request_dict)
 
     return jsonify({
-        'accepted_service_requests': accepted_requests
+        'accepted_service_requests': accepted_requests,
+        'assigned_service_requests': assigned_requests
     })
     
 # get all available technicians on a specific day
@@ -424,21 +437,21 @@ def get_available_technicians():
     day_start = datetime(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day)
     day_end = datetime(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day, 23, 59, 59)
 
-    # Query to fetch technicians and their job counts
+    # checks how many jobs a technician has on a day selected 
     technicians = db.session.query(
         Technicians.technicians_id,
         Technicians.first_name,
         Technicians.last_name,
-        func.count(AssignedServices.service_request_id).label('job_count')
+        func.count(case(
+            (ServicesRequest.proposed_datetime.between(day_start, day_end), AssignedServices.service_request_id),
+            else_=None  
+        )).label('job_count')
     ).outerjoin(
         AssignedServices,
         AssignedServices.technicians_id == Technicians.technicians_id
     ).outerjoin(
         ServicesRequest,
-        (AssignedServices.service_request_id == ServicesRequest.service_request_id) &
-        (ServicesRequest.proposed_datetime >= day_start) &
-        (ServicesRequest.proposed_datetime <= day_end) &
-        (ServicesRequest.status == 'accepted')
+        AssignedServices.service_request_id == ServicesRequest.service_request_id
     ).group_by(
         Technicians.technicians_id
     ).all()
@@ -450,9 +463,9 @@ def get_available_technicians():
 
     return jsonify(available_technicians)
 
+# assign a technician to a particular job and modify the status to "assigned"
 @app.route('/assign_technicians', methods=['POST'])
 def assign_technicians():
-    # Extract technician_id and service_request_id from the POST data
     data = request.get_json()
     technician_id = data.get('technician_id')
     service_request_id = data.get('service_request_id')
@@ -460,12 +473,14 @@ def assign_technicians():
     if not technician_id or not service_request_id:
         return jsonify({"error": "Missing data for technician or service request"}), 400
 
-    # Check if the service request is in an acceptable state to be assigned
     service_request = ServicesRequest.query.filter_by(service_request_id=service_request_id).first()
     if not service_request or service_request.status != 'accepted':
         return jsonify({"error": "Service request not available for assignment or not in accepted state"}), 404
 
-    # Create a new AssignedServices entry
+    # update the status to 'assigned'
+    service_request.status = 'assigned'
+
+    # create a new AssignedServices entry
     try:
         new_assignment = AssignedServices(
             technicians_id=technician_id,
