@@ -23,10 +23,10 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -274,6 +274,7 @@ class Offers(db.Model):
     offer_status=db.Column(db.String(45), nullable=False)
     customer_id=db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
     car_id=db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
+    
 
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
@@ -1791,6 +1792,15 @@ def add_or_update_customer_bank_info(customer_id):
         return jsonify({'message': 'Bank details added/updated successfully'}), 201
     else:
         return jsonify({'error': 'Customer not found'}), 404
+
+@app.route('/saveFinanceApplication', methods=['POST'])
+def save_application():
+    try:
+        data = request.get_json()
+        print(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return data, 201
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
