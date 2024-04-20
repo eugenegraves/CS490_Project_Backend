@@ -248,8 +248,6 @@ class CustomersBankDetails(db.Model):
 
     customer = db.relationship('Customer', backref=db.backref('bank_details', lazy=True))
 
-
-
 # NOT FINISHED -DYLAN
 class AssignedServices(db.Model):
     __tablename__ = 'assigned_services'
@@ -274,16 +272,6 @@ class Offers(db.Model):
     offer_status=db.Column(db.String(45), nullable=False)
     customer_id=db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
     car_id=db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
-    
-class BankInformation(db.Model):
-    __tablename__="customers_bank_details"
-    
-    bank_detail_id=db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
-    bank_name=db.Column(db.String(50), nullable=False)
-    account_number=db.Column(db.Integer, nullable=False)
-    routing_number=db.Column(db.Integer, nullable=False)
-    customer_id=db.Column(db.Integer, nullable=False)
-    
 
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
@@ -410,7 +398,7 @@ def get_customer_bank_details():
         return jsonify({"error": "Customer ID is required."}), 400
 
     # Query the database to retrieve bank details for the specified customer_id
-    bank_details =BankInformation.query.filter_by(customer_id=customer_id).all()
+    bank_details =CustomersBankDetails.query.filter_by(customer_id=customer_id).all()
 
     if not bank_details:
         return jsonify({"error": "No bank details found for the specified customer."}), 404
