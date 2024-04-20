@@ -12,6 +12,7 @@ import math
 from math import ceil
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import select
+from sqlalchemy import CheckConstraint
 
 
 ''' Connection '''
@@ -45,8 +46,12 @@ class Customer(db.Model):
     Address = db.Column(db.String(45), nullable=True)
     password = db.Column(db.String(45), nullable=False)
     usernames = db.Column(db.String(45), nullable=True, unique=True)
-
-    def __init__(self, first_name, last_name, email, phone, password, Address=None, usernames=None):
+    social_security = db.Column(db.Integer, nullable=False, unique=True)
+    
+    __table_args__ = (
+        CheckConstraint('LENGTH(CAST(social_security AS CHAR(9))) = 9'),
+    )
+    def __init__(self, first_name, last_name, email, phone, password, Address=None, usernames=None, social_security=None):
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
@@ -54,6 +59,7 @@ class Customer(db.Model):
         self.Address = Address
         self.password = password
         self.usernames = usernames
+        self.social_security = social_security
 
 class Technicians(db.Model):
     __tablename__ = 'technicians'
@@ -243,6 +249,7 @@ class CustomersBankDetails(db.Model):
     customer = db.relationship('Customer', backref=db.backref('bank_details', lazy=True))
 
 
+
 # NOT FINISHED -DYLAN
 class AssignedServices(db.Model):
     __tablename__ = 'assigned_services'
@@ -278,7 +285,8 @@ def add_customer():
         phone=data['phone'],
         Address=data.get('Address', None),
         password=data['password'],
-        usernames=data['usernames']
+        usernames=data['usernames'],
+        social_security=data['social_security']
     )
     db.session.add(new_customer)
     db.session.commit()
@@ -355,7 +363,8 @@ def login():
             'phone': customer.phone,
             'Address': customer.Address,
             'password': customer.password,
-            'usernames': customer.usernames
+            'usernames': customer.usernames,
+            'social_security':customer.social_security
         }), 200
     else:
         return jsonify({'error': 'Invalid username or password'}), 401
