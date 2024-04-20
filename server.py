@@ -231,6 +231,18 @@ class TestDriveAppointment(db.Model):
     def __repr__(self):
         return f'<TestDriveAppointment appointment_id={self.appointment_id} appointment_date={self.appointment_date} status={self.status}>'
 
+class CustomersBankDetails(db.Model):
+    __tablename__ = 'customers_bank_details'
+
+    bank_detail_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    bank_name = db.Column(db.String(45), nullable=False)
+    account_number = db.Column(db.String(20), nullable=False)  # Assuming account numbers are strings
+    routing_number = db.Column(db.String(20), nullable=False)  # Assuming routing numbers are strings
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
+
+    customer = db.relationship('Customer', backref=db.backref('bank_details', lazy=True))
+
+
 # NOT FINISHED -DYLAN
 class AssignedServices(db.Model):
     __tablename__ = 'assigned_services'
@@ -1655,6 +1667,63 @@ def sendApplication(data):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     return response.json()
+
+@app.route('/get-customer-bank_info/<int:customer_id>', methods=['GET'])
+def get_customer_bank_info(customer_id):
+    customer = Customer.query.get(customer_id)
+    if customer:
+        bank_details = customer.bank_details  # Assuming bank_details is a list due to the one-to-many relationship
+        if bank_details:
+            # Assuming you want to return all bank details for the customer
+            bank_info_list = []
+            for bank_detail in bank_details:
+                bank_info = {
+                    'bank_name': bank_detail.bank_name,
+                    'account_number': bank_detail.account_number,
+                    'routing_number': bank_detail.routing_number
+                }
+                bank_info_list.append(bank_info)
+            return jsonify(bank_info_list), 200
+        else:
+            return jsonify({'error': 'Bank details not found for this customer'}), 404
+    else:
+        return jsonify({'error': 'Customer not found'}), 404
+    
+@app.route('/add-customer-bank_info/<int:customer_id>', methods=['POST'])
+def add_or_update_customer_bank_info(customer_id):
+    customer = Customer.query.get(customer_id)
+    if customer:
+        bank_name = request.json.get('bank_name')
+        account_number = str(request.json.get('account_number'))
+        routing_number = str(request.json.get('routing_number'))
+
+        if not all([bank_name, account_number, routing_number]):
+            return jsonify({'error': 'Missing bank information'}), 400
+
+        # Validate account number and routing number format (you may need more sophisticated validation)
+        if not (account_number.isdigit() and routing_number.isdigit()):
+            return jsonify({'error': 'Invalid account or routing number format'}), 400
+
+        existing_bank_details = CustomersBankDetails.query.filter_by(customer_id=customer_id).first()
+
+        if existing_bank_details:
+            existing_bank_details.bank_name = bank_name
+            existing_bank_details.account_number = account_number
+            existing_bank_details.routing_number = routing_number
+        else:
+            new_bank_details = CustomersBankDetails(
+                bank_name=bank_name,
+                account_number=account_number,
+                routing_number=routing_number,
+                customer_id=customer_id
+            )
+            db.session.add(new_bank_details)
+
+        db.session.commit()
+
+        return jsonify({'message': 'Bank details added/updated successfully'}), 201
+    else:
+        return jsonify({'error': 'Customer not found'}), 404
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
