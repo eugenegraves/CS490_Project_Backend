@@ -21,12 +21,12 @@ app = Flask(__name__)
 
 #hello
 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -771,7 +771,7 @@ def show_customer_service_requests():
         ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
     ).join(
         Customer, Customer.customer_id == ServicesRequest.customer_id
-    ).all()
+    ).filter(ServicesRequest.status == 'pending').all()  # Filter by status
 
     result = []
     for request, name, service_price, description, proposed_datetime, status, car_id, service_offered_id, customer_id, customer_username, customer_phone, in service_requests:
@@ -791,6 +791,7 @@ def show_customer_service_requests():
         })
 
     return jsonify(result)
+
 
 @app.route('/update_customer_service_requests/<int:service_request_id>', methods=['PATCH'])
 def update_customer_service_requests(service_request_id):
