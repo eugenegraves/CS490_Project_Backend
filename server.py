@@ -248,8 +248,6 @@ class CustomersBankDetails(db.Model):
 
     customer = db.relationship('Customer', backref=db.backref('bank_details', lazy=True))
 
-
-
 # NOT FINISHED -DYLAN
 class AssignedServices(db.Model):
     __tablename__ = 'assigned_services'
@@ -401,7 +399,7 @@ def get_customer_bank_details():
         return jsonify({"error": "Customer ID is required."}), 400
 
     # Query the database to retrieve bank details for the specified customer_id
-    bank_details =BankInformation.query.filter_by(customer_id=customer_id).all()
+    bank_details =CustomersBankDetails.query.filter_by(customer_id=customer_id).all()
 
     if not bank_details:
         return jsonify({"error": "No bank details found for the specified customer."}), 404
