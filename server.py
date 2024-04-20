@@ -20,9 +20,9 @@ app = Flask(__name__)
 
 #hello
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
@@ -257,6 +257,16 @@ class Offers(db.Model):
     offer_status=db.Column(db.String(45), nullable=False)
     customer_id=db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
     car_id=db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
+    
+class BankInformation(db.Model):
+    __tablename__="customers_bank_details"
+    
+    bank_detail_id=db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    bank_name=db.Column(db.String(50), nullable=False)
+    account_number=db.Column(db.Integer, nullable=False)
+    routing_number=db.Column(db.Integer, nullable=False)
+    customer_id=db.Column(db.Integer, nullable=False)
+    
 
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
@@ -374,6 +384,32 @@ def login_technicians():
     else:
         return jsonify({'error': 'Invalid technician ID, password, or first name'}), 401
 
+@app.route('/get_customer_bank_details', methods=['GET'])
+def get_customer_bank_details():
+    customer_id = request.args.get('customer_id', type=int)
+    if customer_id is None:
+        return jsonify({"error": "Customer ID is required."}), 400
+
+    # Query the database to retrieve bank details for the specified customer_id
+    bank_details =BankInformation.query.filter_by(customer_id=customer_id).all()
+
+    if not bank_details:
+        return jsonify({"error": "No bank details found for the specified customer."}), 404
+
+    # Prepare the data for the response
+    bank_details_list = [
+        {
+            'bank_detail_id': bank.bank_detail_id,
+            'bank_name': bank.bank_name,
+            'account_number': bank.account_number,
+            'routing_number': bank.routing_number,
+            'customer_id': bank.customer_id
+        }
+        for bank in bank_details
+    ]
+
+    return jsonify(bank_details_list)
+
 # returns all the service requests in the next week
 @app.route('/get_upcoming_week_requests', methods=['GET'])
 def get_upcoming_week_requests():
@@ -466,32 +502,40 @@ def get_available_technicians():
 # assign a technician to a particular job and modify the status to "assigned"
 @app.route('/assign_technicians', methods=['POST'])
 def assign_technicians():
-    data = request.get_json()
+    data = request.json
     technician_id = data.get('technician_id')
     service_request_id = data.get('service_request_id')
 
-    if not technician_id or not service_request_id:
-        return jsonify({"error": "Missing data for technician or service request"}), 400
-
     service_request = ServicesRequest.query.filter_by(service_request_id=service_request_id).first()
-    if not service_request or service_request.status != 'accepted':
-        return jsonify({"error": "Service request not available for assignment or not in accepted state"}), 404
+    if not service_request:
+        return jsonify({"error": "Service request not found"}), 404
 
-    # update the status to 'assigned'
+    technician = Technicians.query.filter_by(technicians_id=technician_id).first()
+    if not technician:
+        return jsonify({"error": "Technician not found"}), 404
+
+    # Check for conflicting jobs
+    conflicting_jobs = AssignedServices.query \
+        .join(ServicesRequest) \
+        .filter(
+            AssignedServices.technicians_id == technician_id,
+            ServicesRequest.proposed_datetime == service_request.proposed_datetime
+        ) \
+        .all()
+
+    if conflicting_jobs:
+        return jsonify({"error": "Technician has conflicting jobs at the proposed time"}), 400
+
+    # If no conflicts, assign the technician
+    assigned_service = AssignedServices(
+        technicians_id=technician_id,
+        service_request_id=service_request_id
+    )
+    db.session.add(assigned_service)
     service_request.status = 'assigned'
+    db.session.commit()
 
-    # create a new AssignedServices entry
-    try:
-        new_assignment = AssignedServices(
-            technicians_id=technician_id,
-            service_request_id=service_request_id
-        )
-        db.session.add(new_assignment)
-        db.session.commit()
-        return jsonify({"message": "Technician successfully assigned to service request"}), 201
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"message": "Technician assigned successfully"}), 200
     
 @app.route('/login_managers', methods=['POST'])
 def login_managers():
