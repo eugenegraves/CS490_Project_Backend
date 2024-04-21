@@ -1551,30 +1551,61 @@ def AcceptOffer():
     return jsonify({'message': 'offer added to cart and status updated to accepted'}), 200
 
 
+
 @app.route('/view_customer_service_details/<int:assigned_service_id>', methods=['GET'])
 def view_customer_service_details(assigned_service_id):
     try:
         # Retrieve the service request details from the database
-        query = text("SELECT aas.assigned_service_id, sr.service_request_id, c.make, c.model, ct.first_name, ct.last_name, so.name, so.price, so.description, srp.report FROM cars_dealershipx.services_request sr join cars_dealershipx.cars c on sr.car_id = c.car_id join cars_dealershipx.customers ct on sr.customer_id = ct.customer_id join cars_dealershipx.services_offered so on sr.service_offered_id = so.services_offered_id join cars_dealershipx.assigned_services aas on sr.service_request_id = aas.service_request_id left join cars_dealershipx.service_report srp on aas.assigned_service_id = srp.assigned_service_id where aas.assigned_service_id = :serviceID")
+        query = text("""
+            SELECT 
+                aas.assigned_service_id, 
+                sr.service_request_id, 
+                COALESCE(c.make, oc.make) AS make, 
+                COALESCE(c.model, oc.model) AS model, 
+                ct.first_name, 
+                ct.last_name, 
+                so.name, 
+                so.price, 
+                so.description, 
+                srp.report 
+            FROM 
+                cars_dealershipx.services_request sr 
+            LEFT JOIN 
+                cars_dealershipx.cars c ON sr.car_id = c.car_id 
+            LEFT JOIN 
+                cars_dealershipx.own_car oc ON sr.car_id = oc.car_id 
+            JOIN 
+                cars_dealershipx.customers ct ON sr.customer_id = ct.customer_id 
+            JOIN 
+                cars_dealershipx.services_offered so ON sr.service_offered_id = so.services_offered_id 
+            JOIN 
+                cars_dealershipx.assigned_services aas ON sr.service_request_id = aas.service_request_id 
+            LEFT JOIN 
+                cars_dealershipx.service_report srp ON aas.assigned_service_id = srp.assigned_service_id 
+            WHERE 
+                aas.assigned_service_id = :serviceID
+        """)
         result = db.session.execute(query, {'serviceID': assigned_service_id})
         rows = result.fetchall()
 
-        # Check if the service request details were found
-        if not rows:
-            return jsonify({'error': 'Service details not found'}), 404
+        
 
         # Construct ticket details
-        ticket_details = [{'assigned_service_id': row[0],
-                           'service_request_id': row[1],
-                           'car_make': row[2],
-                           'car_model': row[3],
-                           'customer_first_name': row[4],
-                           'customer_last_name': row[5],
-                           'service_name': row[6],
-                           'service_price': row[7],
-                           'service_description': row[8],
-                           'report': row[9]}  # Added 'report' field
-                          for row in rows]
+        ticket_details = []
+        for row in rows:
+            ticket_detail = {
+                'assigned_service_id': row[0],
+                'service_request_id': row[1],
+                'car_make': row[2],
+                'car_model': row[3],
+                'customer_first_name': row[4],
+                'customer_last_name': row[5],
+                'service_name': row[6],
+                'service_price': row[7],
+                'service_description': row[8],
+                'report': row[9] if row[9] is not None else "No report yet"  # Use an empty string if report is None
+            }
+            ticket_details.append(ticket_detail)
 
         return jsonify(ticket_details), 200
     except Exception as e:
