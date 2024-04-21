@@ -21,12 +21,12 @@ app = Flask(__name__)
 
 #hello
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -1832,7 +1832,41 @@ def save_application():
         print(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    return data, 201
+    return jsonify(data), 201
+
+@app.route('/preCheckout', methods=['POST'])
+def preCheckout():
+    try:
+        data = request.get_json()['customer_id']
+        cart_items = Cart.query.filter_by(customer_id=data).all()
+        print(cart_items)
+        for cart_item in cart_items:
+            print(cart_item.item_price)
+            new_item_sold = ItemSold(
+                customer_id=data,  # Replace with actual customer ID
+                item_type="Car",  # Replace with actual item type
+                date=datetime.now(),  # Uses current UTC time
+                price=cart_item.item_price,  # Replace with actual price
+                item_id=cart_item.car_id,  # Replace with actual item ID
+                method_of_payment="Bank Account",  # Optional, replace with payment method (or None)
+            )
+            db.session.add(new_item_sold)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    db.session.commit()
+    return jsonify({'customer_id': data}), 201
+
+@app.route('/checkout/<int:customer_id>', methods=['DELETE'])
+def checkout(customer_id):
+    try:
+        cart_items = Cart.query.filter_by(customer_id=customer_id).all()
+        print(cart_items)
+        for cart_item in cart_items:
+            db.session.delete(cart_item)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    db.session.commit()
+    return jsonify({'mesage': 'successful checkout'}), 200
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
