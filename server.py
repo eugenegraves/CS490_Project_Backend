@@ -24,9 +24,9 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -911,7 +911,6 @@ def get_customer_service_requests(customer_id):
         })
 
     return jsonify(result)
-
 @app.route('/get_cart_items/<int:customer_id>', methods=['GET'])
 def get_cart_items(customer_id):
     # Query the database to get the cart items for the given customer ID
@@ -921,6 +920,7 @@ def get_cart_items(customer_id):
         return jsonify({'message': 'No items found in the cart for this customer.'}), 404
 
     # Prepare the response data
+    allCars =[]
     items_data = []
     for cart_item in cart_items:
         item_data = {
@@ -934,8 +934,17 @@ def get_cart_items(customer_id):
             'service_package_id' : cart_item.service_package_id
         }
         items_data.append(item_data)
+        if cart_item.car_id  and (cart_item.service_package_id is None):
+            carsData={
+                'car_id': cart_item.car_id,
+                'car_name' : cart_item.item_name,
+                'car_price': cart_item.item_price
+            }
+            allCars.append(carsData)    
+    #print(allCars)  
+        
+    return jsonify({'cart_items': items_data, 'allCars':allCars}), 200
 
-    return jsonify({'cart_items': items_data}), 200
 
 #use the carid to delete the perks and car if it is a car else use cartId
 @app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>/<int:customer_id>', methods=['DELETE'])
