@@ -275,6 +275,25 @@ class Offers(db.Model):
     customer_id=db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
     car_id=db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
     
+class FinanceContract(db.Model):
+    __tablename__ = 'finance_contracts'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    first_name = db.Column(db.String(255), nullable=False)
+    last_name = db.Column(db.String(255), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
+    phone_number = db.Column(db.String(255), nullable=False)
+    car_year = db.Column(db.Integer, nullable=False)
+    car_make = db.Column(db.String(255), nullable=False)
+    car_model = db.Column(db.String(255), nullable=False)
+    car_price = db.Column(db.DECIMAL(10, 2), nullable=False)
+    credit_score = db.Column(db.Integer, nullable=False)
+    finance_decision = db.Column(db.String(255), nullable=False)
+    loan_term = db.Column(db.Integer, nullable=False)
+    loan_apr = db.Column(db.DECIMAL(5, 2), nullable=False)
+    loan_monthly_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
 
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
@@ -1827,12 +1846,35 @@ def add_or_update_customer_bank_info(customer_id):
 
 @app.route('/saveFinanceApplication', methods=['POST'])
 def save_application():
+    data = request.get_json()
+    print(data)
+
+    new_contract = FinanceContract(
+        first_name=data.get('first_name'),
+        last_name=data.get('last_name'),
+        customer_id=data.get('customer_id'),
+        email=data.get('email'),
+        address=data.get('address'),
+        phone_number=data.get('phone_number'),
+        car_year=data.get('car_year'),
+        car_make=data.get('car_make'),
+        car_model=data.get('car_model'),
+        car_price=data.get('car_price'),
+        credit_score=data.get('credit_score'),
+        finance_decision=data.get('finance_decision'),
+        loan_term=data.get('loan_term'),
+        loan_apr=data.get('loan_apr'),
+        loan_monthly_payment=data.get('loan_monthly_payment')
+    )
+
+    db.session.add(new_contract)
+
+
     try:
-        data = request.get_json()
-        print(data)
+        db.session.commit()
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    return jsonify(data), 201
+    return jsonify({'message': 'Contract/Report Saved Successfully!!'}), 201
 
 @app.route('/preCheckout', methods=['POST'])
 def preCheckout():
