@@ -196,6 +196,8 @@ class Cart(db.Model):
     service_offered_id = db.Column(db.Integer, db.ForeignKey('services_offered.services_offered_id'))
     service_package_id = db.Column(db.Integer, db.ForeignKey('services_package.service_package_id'))
 
+
+
 class Accessoire(db.Model):
     __tablename__ = 'accessoires'
     accessoire_id = db.Column(db.Integer, primary_key=True)
@@ -1918,6 +1920,21 @@ def checkout(customer_id):
         return jsonify({'error': str(e)}), 500
     db.session.commit()
     return jsonify({'mesage': 'successful checkout'}), 200
+
+@app.route('/fetchFinance', methods=['POST'])
+def finance():
+    try:
+        finance_items = FinanceContract.query.all()
+    except Exception as e:
+        print("error", str(e))
+        return jsonify({'error' : str(e)}), 500
+    finances =[ {"finance_id" : item.id,"customer_id" : item.customer_id, "first_name" :item.first_name, "last_name" :item.last_name,
+                 "car_year":item.car_year, "car_make":item.car_make, "car_model" : item.car_model,"car_price" :item.car_price,
+                 "credit_score":item.credit_score,"finance_decision":item.finance_decision, "loan_term":item.loan_term, "loan_apr":item.loan_apr,
+                 "monthly_payment": item.loan_monthly_payment} 
+               for item in finance_items]
+    return jsonify({"finances" : finances}), 200
+
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
