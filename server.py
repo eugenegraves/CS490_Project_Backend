@@ -24,8 +24,8 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -344,7 +344,7 @@ def add_technician():
         first_name=data['firstName'],
         last_name=data['lastName'],
         email=data['email'],
-        usernames=data['username'],  # corrected 'usernames' to 'username'
+        usernames=data['username'], 
         phone=data['phone'],
         password=data['password'],
         manager_id=manager_id
@@ -359,9 +359,10 @@ def add_manager():
     data=request.get_json()
     if 'admin_id' in data:
         manager=Managers(
-            firstName=data['first_name'],
-            lastName=data['last_name'],
+            first_name=data['firstName'],
+            last_name=data['lastName'],
             email=data['email'],
+            usernames=data['username'],
             phone=data['phone'],
             password=data['password'],
             admin_id=data['admin_id']
