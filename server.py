@@ -24,10 +24,10 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -1907,7 +1907,69 @@ def preCheckout():
         cart_items = Cart.query.filter_by(customer_id=data).all()
         print(data)
         for cart_item in cart_items:
-            if cart_item.service_package_id is not None:
+            print(cart_item.service_package_id)
+            if cart_item.item_name == "Oil Change":
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Service Appointment",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.car_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)
+            elif cart_item.item_name == "Tire Rotation":
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Service Appointment",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.car_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)
+            elif cart_item.item_name == "Brake Inspection":
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Service Appointment",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.car_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)  
+            elif cart_item.item_name == "Coolant Flush":
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Service Appointment",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.car_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)  
+            elif cart_item.item_name == "Air Filter":
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Service Appointment",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.car_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)
+            elif cart_item.item_name == "Transmission Fluid":
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Service Appointment",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.car_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)
+            elif cart_item.service_package_id is not None:
+                print(cart_item.service_package_id)
                 new_item_sold = ItemSold(
                     customer_id=data,  # Replace with actual customer ID
                     item_type="Service Package",  # Replace with actual item type
