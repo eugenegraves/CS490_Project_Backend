@@ -25,9 +25,9 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -207,6 +207,8 @@ class Cart(db.Model):
     accessoire_id = db.Column(db.Integer, db.ForeignKey('accessoires.accessoire_id'))
     service_offered_id = db.Column(db.Integer, db.ForeignKey('services_offered.services_offered_id'))
     service_package_id = db.Column(db.Integer, db.ForeignKey('services_package.service_package_id'))
+
+
 
 class Accessoire(db.Model):
     __tablename__ = 'accessoires'
@@ -923,7 +925,6 @@ def get_customer_service_requests(customer_id):
         })
 
     return jsonify(result)
-
 @app.route('/get_cart_items/<int:customer_id>', methods=['GET'])
 def get_cart_items(customer_id):
     # Query the database to get the cart items for the given customer ID
@@ -933,6 +934,7 @@ def get_cart_items(customer_id):
         return jsonify({'message': 'No items found in the cart for this customer.'}), 404
 
     # Prepare the response data
+    allCars =[]
     items_data = []
     for cart_item in cart_items:
         item_data = {
@@ -946,8 +948,17 @@ def get_cart_items(customer_id):
             'service_package_id' : cart_item.service_package_id
         }
         items_data.append(item_data)
+        if cart_item.car_id  and (cart_item.service_package_id is None):
+            carsData={
+                'car_id': cart_item.car_id,
+                'car_name' : cart_item.item_name,
+                'car_price': cart_item.item_price
+            }
+            allCars.append(carsData)    
+    #print(allCars)  
+        
+    return jsonify({'cart_items': items_data, 'allCars':allCars}), 200
 
-    return jsonify({'cart_items': items_data}), 200
 
 #use the carid to delete the perks and car if it is a car else use cartId
 @app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>/<int:customer_id>', methods=['DELETE'])
@@ -1941,6 +1952,21 @@ def checkout(customer_id):
         return jsonify({'error': str(e)}), 500
     db.session.commit()
     return jsonify({'mesage': 'successful checkout'}), 200
+
+@app.route('/fetchFinance', methods=['POST'])
+def finance():
+    try:
+        finance_items = FinanceContract.query.all()
+    except Exception as e:
+        print("error", str(e))
+        return jsonify({'error' : str(e)}), 500
+    finances =[ {"finance_id" : item.id,"customer_id" : item.customer_id, "first_name" :item.first_name, "last_name" :item.last_name,
+                 "car_year":item.car_year, "car_make":item.car_make, "car_model" : item.car_model,"car_price" :item.car_price,
+                 "credit_score":item.credit_score,"finance_decision":item.finance_decision, "loan_term":item.loan_term, "loan_apr":item.loan_apr,
+                 "monthly_payment": item.loan_monthly_payment} 
+               for item in finance_items]
+    return jsonify({"finances" : finances}), 200
+
 
 @app.route('/getMonthlySales', methods=['GET'])
 def getMonthlySales():
