@@ -1998,7 +1998,17 @@ def preCheckout():
                     item_id=cart_item.car_id,  # Replace with actual item ID
                     method_of_payment="bank account",  # Optional, replace with payment method (or None)
                 )
+                target_car = Cars.query.filter_by(car_id=data).first()
+                print(target_car)
+                new_own_car = OwnCar(
+                    car_id = cart_item.car_id,
+                    customer_id = data,
+                    make = target_car.make,
+                    model = target_car.model,
+                    year = target_car.year,
+                )
                 db.session.add(new_item_sold)
+                db.session.add(new_own_car)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     db.session.commit()
