@@ -6,7 +6,8 @@ from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
 from sqlalchemy import text, func, and_, update, case
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import calendar
 from sqlalchemy.exc import IntegrityError
 import math
 from math import ceil
@@ -126,6 +127,17 @@ class ItemSold(db.Model):
         self.price = price
         self.item_id = item_id
         self.method_of_payment = method_of_payment
+
+    def serialize(self):
+        return {
+            "id": self.item_sold_id,
+            "customer_id": self.customer_id,
+            "item_type": self.item_type,
+            "date": self.date.isoformat(),  # Convert datetime to ISO format for JSON
+            "price": self.price,
+            "item_id": self.item_id,
+            "method_of_payment": self.method_of_payment
+        }
 
     def __repr__(self):
         return f'<ItemSold {self.item_sold_id}>'
@@ -1892,18 +1904,38 @@ def preCheckout():
     try:
         data = request.get_json()['customer_id']
         cart_items = Cart.query.filter_by(customer_id=data).all()
-        print(cart_items)
+        print(data)
         for cart_item in cart_items:
-            print(cart_item.item_price)
-            new_item_sold = ItemSold(
-                customer_id=data,  # Replace with actual customer ID
-                item_type="Car",  # Replace with actual item type
-                date=datetime.now(),  # Uses current UTC time
-                price=cart_item.item_price,  # Replace with actual price
-                item_id=cart_item.car_id,  # Replace with actual item ID
-                method_of_payment="Bank Account",  # Optional, replace with payment method (or None)
-            )
-            db.session.add(new_item_sold)
+            if cart_item.service_package_id is not None:
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Service Package",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.car_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)
+            elif cart_item.accessoire_id is not None:
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Accessory",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.accessoire_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)
+            else:
+                new_item_sold = ItemSold(
+                    customer_id=data,  # Replace with actual customer ID
+                    item_type="Car",  # Replace with actual item type
+                    date=datetime.now(),  # Uses current UTC time
+                    price=cart_item.item_price,  # Replace with actual price
+                    item_id=cart_item.car_id,  # Replace with actual item ID
+                    method_of_payment="bank account",  # Optional, replace with payment method (or None)
+                )
+                db.session.add(new_item_sold)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     db.session.commit()
@@ -1936,6 +1968,18 @@ def finance():
     return jsonify({"finances" : finances}), 200
 
 
+@app.route('/getMonthlySales', methods=['GET'])
+def getMonthlySales():
+    today = datetime.now(timezone.utc)
+    firstOfTheMonth = today.replace(day=1)
+    lastOfTheMonth = firstOfTheMonth + timedelta(days = (calendar.monthrange(today.year, today.month)[1] - 1))
+
+    currentMonthSales = ItemSold.query.filter(
+        ItemSold.date >= firstOfTheMonth,
+        ItemSold.date <= lastOfTheMonth
+    ).all()
+
+    return jsonify([item.serialize() for item in currentMonthSales])
+
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
-
