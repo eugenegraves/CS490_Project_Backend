@@ -1801,12 +1801,26 @@ def receiveApplication():
     try:
         data = request.get_json()
         print(data)
-        sendApplication(data)
         response = sendApplication(data)
+        print(response)
+        
+        
+        credit_score = response.get('credit_score')
+        customer_id = response.get('customer_id')
+
+        if credit_score is not None and customer_id is not None:
+            
+            customer_bank_details = CustomersBankDetails.query.filter_by(customer_id=customer_id).first()
+            if customer_bank_details:
+                customer_bank_details.credit_score = credit_score
+                db.session.commit()
+            else:
+                
+                return jsonify({'error': 'Customer bank details not found'}), 404
+        
+        return jsonify(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    print(response)
-    return response
 def sendApplication(data):
     url = 'http://localhost:5001/receive_finance_application'
     try:
