@@ -22,12 +22,12 @@ app = Flask(__name__)
 
 #hello
 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -261,9 +261,11 @@ class CustomersBankDetails(db.Model):
 
     bank_detail_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     bank_name = db.Column(db.String(45), nullable=False)
-    account_number = db.Column(db.String(20), nullable=False)  # Assuming account numbers are strings
-    routing_number = db.Column(db.String(20), nullable=False)  # Assuming routing numbers are strings
+    account_number = db.Column(db.String(20), nullable=False)  
+    routing_number = db.Column(db.String(20), nullable=False)  
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
+    credit_score = db.Column(db.Integer)  
+
 
     customer = db.relationship('Customer', backref=db.backref('bank_details', lazy=True))
 
@@ -1813,6 +1815,12 @@ def sendApplication(data):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     return response.json()
+
+
+
+
+
+
 
 @app.route('/get-customer-bank_info/<int:customer_id>', methods=['GET'])
 def get_customer_bank_info(customer_id):
