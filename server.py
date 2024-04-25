@@ -1075,6 +1075,7 @@ def add_car(customer_id):
     car_id = data.get('car_id')
     make = data.get('make')
     model = data.get('model')
+    year = data.get('year')
 
     # Check if the car_id already exists in the cars table
     existing_car = Cars.query.filter_by(car_id=car_id).first()
@@ -1085,7 +1086,7 @@ def add_car(customer_id):
     if not customer:
         return jsonify({'error': 'Customer not found'}), 404
 
-    new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model)
+    new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model, year=year)
 
     db.session.add(new_car)
     db.session.commit()
@@ -1131,7 +1132,8 @@ def get_cars(customer_id):
         cars_list.append({
             'car_id': car.car_id,
             'make': car.make,
-            'model': car.model
+            'model': car.model,
+            'year': car.year
         })
 
     return jsonify({'cars': cars_list})
