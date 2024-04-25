@@ -1007,15 +1007,27 @@ def add_to_cart():
     data = request.get_json()
     print(data)
     # Extract data from the JSON payload
+    '''
     customer_id = data.get('customer_id')
     car_id = data.get('car_id')
     item_price = data.get('item_price')
     item_name = data.get('item_name')
     item_image = data.get('item_image')
+    item_accessoire_id = data.get('accessoire_id')
     item_service_offered_id = data.get('service_offered_id')
+    item_service_package_id = data.get('service_package_id')
     item_service_request_id = data.get('service_request_id')
-
+    '''
     try:
+        customer_id = data.get('customer_id')
+        car_id = data.get('car_id')
+        item_price = data.get('item_price')
+        item_name = data.get('item_name')
+        item_image = data.get('item_image')
+        item_accessoire_id = data.get('accessoire_id')
+        item_service_offered_id = data.get('service_offered_id')
+        item_service_package_id = data.get('service_package_id')
+        item_service_request_id = data.get('service_request_id')
         # Conditionally assign service_offered_id based on its presence in the JSON payload
         if item_service_offered_id is not None:
             new_cart_item = Cart(
@@ -1024,10 +1036,10 @@ def add_to_cart():
                 item_name=item_name,
                 item_image=item_image,
                 car_id=car_id,
-                accessoire_id=None,  
+                accessoire_id=item_accessoire_id,  
                 service_offered_id=item_service_offered_id,  
-                service_package_id=None,
-                service_request_id=item_service_request_id
+                service_package_id=item_service_package_id,
+                service_request_id=item_service_request_id,
             )
         else:
             #return 409 if a car is present in the cart
@@ -1044,7 +1056,7 @@ def add_to_cart():
                 accessoire_id=None,  
                 service_offered_id=None,  
                 service_package_id=None,  
-                item_service_request_id=None
+                service_request_id=None
             )
 
         db.session.add(new_cart_item)
@@ -2084,6 +2096,8 @@ def preCheckout():
                     model = target_car.model,
                     year = target_car.year,
                 )
+                car = Cars.query.get(cart_item.car_id)
+                car.available = 0
                 db.session.add(new_item_sold)
                 db.session.add(new_own_car)
     except Exception as e:
