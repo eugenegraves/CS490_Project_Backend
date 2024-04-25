@@ -22,7 +22,7 @@ app = Flask(__name__)
 
 #hello
 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
@@ -1075,6 +1075,7 @@ def add_car(customer_id):
     car_id = data.get('car_id')
     make = data.get('make')
     model = data.get('model')
+    year = data.get('year')
 
     # Check if the car_id already exists in the cars table
     existing_car = Cars.query.filter_by(car_id=car_id).first()
@@ -1085,7 +1086,7 @@ def add_car(customer_id):
     if not customer:
         return jsonify({'error': 'Customer not found'}), 404
 
-    new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model)
+    new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model, year=year)
 
     db.session.add(new_car)
     db.session.commit()
@@ -1131,7 +1132,8 @@ def get_cars(customer_id):
         cars_list.append({
             'car_id': car.car_id,
             'make': car.make,
-            'model': car.model
+            'model': car.model,
+            'year': car.year
         })
 
     return jsonify({'cars': cars_list})
@@ -1460,7 +1462,8 @@ def add_appointment():
 @app.route('/show_test_drive_appointments', methods=['GET', 'PATCH'])
 def get_appointments():
     appointments = db.session.query(TestDriveAppointment).\
-        join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).all()
+        join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).\
+        filter(TestDriveAppointment.status == 'pending').all()
 
     appointment_list = []
     for appointment in appointments:
@@ -1878,7 +1881,8 @@ def get_customer_bank_info(customer_id):
                 bank_info = {
                     'bank_name': bank_detail.bank_name,
                     'account_number': bank_detail.account_number,
-                    'routing_number': bank_detail.routing_number
+                    'routing_number': bank_detail.routing_number,
+                    'credit_score': bank_detail.credit_score
                 }
                 bank_info_list.append(bank_info)
             return jsonify(bank_info_list), 200
