@@ -22,10 +22,10 @@ app = Flask(__name__)
 
 #hello
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -969,7 +969,7 @@ def get_cart_items(customer_id):
             'service_package_id' : cart_item.service_package_id
         }
         items_data.append(item_data)
-        if cart_item.car_id  and (cart_item.service_package_id is None):
+        if cart_item.car_id  and (cart_item.service_package_id is None and cart_item.service_offered_id is None and cart_item.service_request_id is None):
             carsData={
                 'car_id': cart_item.car_id,
                 'car_name' : cart_item.item_name,
