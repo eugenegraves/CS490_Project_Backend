@@ -2087,7 +2087,7 @@ def preCheckout():
                     item_id=cart_item.car_id,
                     method_of_payment="bank account",
                 )
-                target_car = Cars.query.filter_by(car_id=data).first()
+                target_car = Cars.query.filter_by(car_id=cart_item.car_id).first()
                 print(target_car)
                 new_own_car = OwnCar(
                     car_id = cart_item.car_id,
