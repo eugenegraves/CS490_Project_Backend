@@ -22,12 +22,12 @@ app = Flask(__name__)
 
 #hello
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -210,7 +210,21 @@ class Cart(db.Model):
     accessoire_id = db.Column(db.Integer, db.ForeignKey('accessoires.accessoire_id'))
     service_offered_id = db.Column(db.Integer, db.ForeignKey('services_offered.services_offered_id'))
     service_package_id = db.Column(db.Integer, db.ForeignKey('services_package.service_package_id'))
+    service_request_id = db.Column(db.Integer)
 
+    def serialize(self):
+        return {
+            "cart_id": self.cart_id,
+            "customer_id": self.customer_id,
+            "item_price": self.item_price,
+            "item_image": self.item_image,
+            "item_name": self.item_name,
+            "car_id": self.car_id,
+            "accessoire_id": self.accessoire_id,
+            "service_offered_id": self.service_offered_id,
+            "service_package_id": self.service_package_id,
+            "service_request_id": self.service_request_id
+        }
 
 
 class Accessoire(db.Model):
@@ -991,6 +1005,7 @@ def delete_cart(cartId,car_id,service_package_id,customer_id):
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     data = request.get_json()
+    print(data)
     # Extract data from the JSON payload
     customer_id = data.get('customer_id')
     car_id = data.get('car_id')
@@ -998,6 +1013,7 @@ def add_to_cart():
     item_name = data.get('item_name')
     item_image = data.get('item_image')
     item_service_offered_id = data.get('service_offered_id')
+    item_service_request_id = data.get('service_request_id')
 
     try:
         # Conditionally assign service_offered_id based on its presence in the JSON payload
@@ -1010,7 +1026,8 @@ def add_to_cart():
                 car_id=car_id,
                 accessoire_id=None,  
                 service_offered_id=item_service_offered_id,  
-                service_package_id=None  
+                service_package_id=None,
+                service_request_id=item_service_request_id
             )
         else:
             #return 409 if a car is present in the cart
@@ -1026,7 +1043,8 @@ def add_to_cart():
                 car_id=car_id,
                 accessoire_id=None,  
                 service_offered_id=None,  
-                service_package_id=None  
+                service_package_id=None,  
+                item_service_request_id=None
             )
 
         db.session.add(new_cart_item)
@@ -1806,16 +1824,16 @@ def receiveApplication():
         
         
         credit_score = response.get('credit_score')
+        print(credit_score)
         customer_id = response.get('customer_id')
+        print(customer_id)
 
-        if credit_score is not None and customer_id is not None:
-            
+        if credit_score is not None and customer_id is not None: 
             customer_bank_details = CustomersBankDetails.query.filter_by(customer_id=customer_id).first()
             if customer_bank_details:
                 customer_bank_details.credit_score = credit_score
                 db.session.commit()
             else:
-                
                 return jsonify({'error': 'Customer bank details not found'}), 404
         
         return jsonify(response)
@@ -1933,7 +1951,7 @@ def preCheckout():
     print(data)
     try:
         for cart_item in cart_items:
-            print(cart_item.item_name)
+            print(cart_item.serialize())
             if cart_item.item_name == "Oil Change":
                 new_item_sold = ItemSold(
                     customer_id=data,
@@ -1944,6 +1962,10 @@ def preCheckout():
                     item_id=cart_item.car_id,
                     method_of_payment="bank account",
                 )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
                 db.session.add(new_item_sold)
             elif cart_item.item_name == "Tire Rotation":
                 new_item_sold = ItemSold(
@@ -1955,6 +1977,10 @@ def preCheckout():
                     item_id=cart_item.car_id,
                     method_of_payment="bank account",
                 )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
                 db.session.add(new_item_sold)
             elif cart_item.item_name == "Brake Inspection":
                 new_item_sold = ItemSold(
@@ -1966,6 +1992,10 @@ def preCheckout():
                     item_id=cart_item.car_id,
                     method_of_payment="bank account",
                 )
+                
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
                 db.session.add(new_item_sold)  
             elif cart_item.item_name == "Coolant Flush":
                 new_item_sold = ItemSold(
@@ -1977,6 +2007,10 @@ def preCheckout():
                     item_id=cart_item.car_id,
                     method_of_payment="bank account",
                 )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
                 db.session.add(new_item_sold)  
             elif cart_item.item_name == "Air Filter":
                 new_item_sold = ItemSold(
@@ -1988,6 +2022,10 @@ def preCheckout():
                     item_id=cart_item.car_id,
                     method_of_payment="bank account",
                 )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
                 db.session.add(new_item_sold)
             elif cart_item.item_name == "Transmission Fluid":
                 new_item_sold = ItemSold(
@@ -1999,6 +2037,10 @@ def preCheckout():
                     item_id=cart_item.car_id,
                     method_of_payment="bank account",
                 )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
                 db.session.add(new_item_sold)
             elif cart_item.service_package_id is not None:
                 print(cart_item.service_package_id)
@@ -2044,7 +2086,6 @@ def preCheckout():
                 )
                 db.session.add(new_item_sold)
                 db.session.add(new_own_car)
-                #db.session.commit()
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     db.session.commit()
