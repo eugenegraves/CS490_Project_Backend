@@ -1462,7 +1462,8 @@ def add_appointment():
 @app.route('/show_test_drive_appointments', methods=['GET', 'PATCH'])
 def get_appointments():
     appointments = db.session.query(TestDriveAppointment).\
-        join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).all()
+        join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).\
+        filter(TestDriveAppointment.status == 'pending').all()
 
     appointment_list = []
     for appointment in appointments:
