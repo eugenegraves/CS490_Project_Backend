@@ -1031,6 +1031,7 @@ def add_to_cart():
         item_service_request_id = data.get('service_request_id')
         # Conditionally assign service_offered_id based on its presence in the JSON payload
         if item_service_offered_id is not None:
+            item_image = ServicesOffered.query.filter_by(services_offered_id=item_service_offered_id).first().image
             new_cart_item = Cart(
                 customer_id=customer_id,
                 item_price=item_price,
