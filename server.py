@@ -1838,12 +1838,6 @@ def receiveApplication():
         print(data)
         response = sendApplication(data)
         print(response)
-        
-        
-        credit_score = response.get('credit_score')
-        print(credit_score)
-        customer_id = response.get('customer_id')
-        print(customer_id)
         return jsonify(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1885,40 +1879,25 @@ def get_customer_bank_info(customer_id):
         return jsonify({'error': 'Customer not found'}), 404
     
 @app.route('/add-customer-bank_info/<int:customer_id>', methods=['POST'])
-def add_or_update_customer_bank_info(customer_id):
-    customer = Customer.query.get(customer_id)
-    if customer:
-        bank_name = request.json.get('bank_name')
-        account_number = str(request.json.get('account_number'))
-        routing_number = str(request.json.get('routing_number'))
+def receive_customerBankInfo(customer_id):
+    try:
+        data = request.get_json()
+        print(data)
+        response = send_customerBankInfo(data,customer_id)
+        print(response)
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+def send_customerBankInfo(data, customer_id):
+    url = f'http://localhost:5001/add-customerBankInfo/{customer_id}'
+    try:
+        response = requests.post(url, json=data)
+        print(response)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return response.json()
 
-        if not all([bank_name, account_number, routing_number]):
-            return jsonify({'error': 'Missing bank information'}), 400
 
-        # Validate account number and routing number format (you may need more sophisticated validation)
-        if not (account_number.isdigit() and routing_number.isdigit()):
-            return jsonify({'error': 'Invalid account or routing number format'}), 400
-
-        existing_bank_details = CustomersBankDetails.query.filter_by(customer_id=customer_id).first()
-
-        if existing_bank_details:
-            existing_bank_details.bank_name = bank_name
-            existing_bank_details.account_number = account_number
-            existing_bank_details.routing_number = routing_number
-        else:
-            new_bank_details = CustomersBankDetails(
-                bank_name=bank_name,
-                account_number=account_number,
-                routing_number=routing_number,
-                customer_id=customer_id
-            )
-            db.session.add(new_bank_details)
-
-        db.session.commit()
-
-        return jsonify({'message': 'Bank details added/updated successfully'}), 201
-    else:
-        return jsonify({'error': 'Customer not found'}), 404
 
 @app.route('/saveFinanceApplication', methods=['POST'])
 def save_application():
