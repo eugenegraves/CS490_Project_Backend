@@ -22,9 +22,9 @@ app = Flask(__name__)
 
 #hello
 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
@@ -1844,15 +1844,6 @@ def receiveApplication():
         print(credit_score)
         customer_id = response.get('customer_id')
         print(customer_id)
-
-        if credit_score is not None and customer_id is not None: 
-            customer_bank_details = CustomersBankDetails.query.filter_by(customer_id=customer_id).first()
-            if customer_bank_details:
-                customer_bank_details.credit_score = credit_score
-                db.session.commit()
-            else:
-                return jsonify({'error': 'Customer bank details not found'}), 404
-        
         return jsonify(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
