@@ -24,8 +24,8 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -1117,7 +1117,7 @@ def add_cars_to_site():
         image4 = car_data.get('image4')
         
         car = Cars(manager_id=manager_id, make=make, model=model, year=year, color=color, engine=engine, transmission=transmission, price=price,
-                   image0=image0, image1=image1, image2=image2, image3=image3, image4=image4)
+                   image0=image0, image1=image1, image2=image2, image3=image3, image4=image4, available=1)
         
         db.session.add(car)
 
@@ -1978,7 +1978,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.car_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
 
                 service_request = ServicesRequest.query.get(cart_item.service_request_id)
@@ -1993,7 +1993,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.car_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
 
                 service_request = ServicesRequest.query.get(cart_item.service_request_id)
@@ -2008,7 +2008,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.car_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
                 
                 service_request = ServicesRequest.query.get(cart_item.service_request_id)
@@ -2023,7 +2023,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.car_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
 
                 service_request = ServicesRequest.query.get(cart_item.service_request_id)
@@ -2038,7 +2038,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.car_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
 
                 service_request = ServicesRequest.query.get(cart_item.service_request_id)
@@ -2053,7 +2053,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.car_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
 
                 service_request = ServicesRequest.query.get(cart_item.service_request_id)
@@ -2069,7 +2069,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.car_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
                 db.session.add(new_item_sold)
             elif cart_item.accessoire_id is not None:
@@ -2080,7 +2080,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.accessoire_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
                 db.session.add(new_item_sold)
             else:
@@ -2091,7 +2091,7 @@ def preCheckout():
                     date=datetime.now(),
                     price=cart_item.item_price,
                     item_id=cart_item.car_id,
-                    method_of_payment="bank account",
+                    method_of_payment="Bank Account",
                 )
                 target_car = Cars.query.filter_by(car_id=cart_item.car_id).first()
                 print(target_car)
