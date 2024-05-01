@@ -1706,7 +1706,7 @@ def view_customer_service_details(assigned_service_id):
                 'service_name': row[6],
                 'service_price': row[7],
                 'service_description': row[8],
-                'report': row[9] if row[9] is not None else "No report yet"  # Use an empty string if report is None
+                'report': row[9] if row[9] is not None else "No report yet"  
             }
             ticket_details.append(ticket_detail)
 
