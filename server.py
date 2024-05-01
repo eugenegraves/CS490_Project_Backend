@@ -328,6 +328,16 @@ class FinanceContract(db.Model):
     loan_apr = db.Column(db.DECIMAL(5, 2), nullable=False)
     loan_monthly_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
 
+
+class ServiceReport(db.Model):
+    __tablename__ = 'service_report'
+    service_report_id = db.Column(db.Integer, primary_key=True)
+    assigned_service_id = db.Column(db.Integer, db.ForeignKey('assigned_services.assigned_service_id'))
+    report = db.Column(db.String(1000))
+
+    def __repr__(self):
+        return f"<ServiceReport {self.service_report_id}>"
+
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
     data = request.get_json()
@@ -919,21 +929,27 @@ def get_car_sold(customer_id):
 
 @app.route('/customer_service_requests/<int:customer_id>', methods=['GET'])
 def get_customer_service_requests(customer_id):
-   
     service_requests = db.session.query(
         ServicesRequest, ServicesOffered.name, ServicesOffered.price,
         ServicesOffered.description, ServicesRequest.proposed_datetime,
         ServicesRequest.status, ServicesRequest.car_id,
-        ServicesRequest.service_offered_id
+        ServicesRequest.service_offered_id, AssignedServices.assigned_service_id
     ).join(
         ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
+    ).outerjoin(
+        AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
     ).filter(
         ServicesRequest.customer_id == customer_id
     ).all()
 
-    
     result = []
-    for request, service_name, price, description, proposed_datetime, status, car_id, service_offered_id in service_requests:
+    for request, service_name, price, description, proposed_datetime, status, car_id, service_offered_id, assigned_service_id in service_requests:
+        report = None
+        if assigned_service_id and status == 'serviced-closed':
+            service_report = ServiceReport.query.filter_by(assigned_service_id=assigned_service_id).first()
+            if service_report:
+                report = service_report.report
+
         result.append({
             'service_request_id': request.service_request_id,
             'service_name': service_name,
@@ -942,10 +958,14 @@ def get_customer_service_requests(customer_id):
             'proposed_datetime': proposed_datetime.strftime('%Y-%m-%d %H:%M:%S'),
             'status': status,
             'car_id': car_id,
-            'service_offered_id': service_offered_id
+            'service_offered_id': service_offered_id,
+            'assigned_service_id': assigned_service_id,
+            'report': report if status == 'serviced-closed' else None  
         })
 
     return jsonify(result)
+
+
 @app.route('/get_cart_items/<int:customer_id>', methods=['GET'])
 def get_cart_items(customer_id):
     # Query the database to get the cart items for the given customer ID
