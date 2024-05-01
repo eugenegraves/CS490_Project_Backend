@@ -2146,30 +2146,32 @@ def getMonthlySales():
 # Endpoint to get finance contract info by customer ID
 @app.route('/view_finance_contract/<int:customer_id>', methods=['GET'])
 def get_finance_contract(customer_id):
-    contract = FinanceContract.query.filter_by(customer_id=customer_id).first()
-    if contract:
-        contract_info = {
-            'id': contract.id,
-            'first_name': contract.first_name,
-            'last_name': contract.last_name,
-            'customer_id': contract.customer_id,
-            'email': contract.email,
-            'address': contract.address,
-            'phone_number': contract.phone_number,
-            'car_year': contract.car_year,
-            'car_make': contract.car_make,
-            'car_model': contract.car_model,
-            'car_price': str(contract.car_price), 
-            'credit_score': contract.credit_score,
-            'finance_decision': contract.finance_decision,
-            'loan_term': contract.loan_term,
-            'loan_apr': str(contract.loan_apr), 
-            'loan_monthly_payment': str(contract.loan_monthly_payment)  
-        }
-        return jsonify(contract_info)
+    contracts = FinanceContract.query.filter_by(customer_id=customer_id).all()
+    if contracts:
+        contract_list = []
+        for contract in contracts:
+            contract_info = {
+                'id': contract.id,
+                'first_name': contract.first_name,
+                'last_name': contract.last_name,
+                'customer_id': contract.customer_id,
+                'email': contract.email,
+                'address': contract.address,
+                'phone_number': contract.phone_number,
+                'car_year': contract.car_year,
+                'car_make': contract.car_make,
+                'car_model': contract.car_model,
+                'car_price': str(contract.car_price), 
+                'credit_score': contract.credit_score,
+                'finance_decision': contract.finance_decision,
+                'loan_term': contract.loan_term,
+                'loan_apr': str(contract.loan_apr), 
+                'loan_monthly_payment': str(contract.loan_monthly_payment)  
+            }
+            contract_list.append(contract_info)
+        return jsonify(contract_list)
     else:
-        return jsonify({'error': 'Contract not found'}), 404
-
+        return jsonify({'error': 'Contracts not found'}), 404
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
