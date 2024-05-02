@@ -24,8 +24,8 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -484,64 +484,61 @@ def get_customer_bank_details():
 
     return jsonify(bank_details_list)
 
-# returns all the service requests in the next week
+# returns all future service requests
 @app.route('/get_upcoming_week_requests', methods=['GET'])
 def get_upcoming_week_requests():
-    today = datetime.today()
-    week_start = datetime(today.year, today.month, today.day)
-    week_end = week_start + timedelta(days=7)
+    try:
+        # Fetch all requests for 'accepted' and 'assigned' statuses
+        service_requests = db.session.query(
+            ServicesRequest.service_request_id,
+            ServicesRequest.proposed_datetime,
+            ServicesRequest.status,
+            ServicesOffered.name.label('service_name'),
+            Technicians.first_name,
+            Technicians.last_name,
+            OwnCar.make,
+            OwnCar.model,
+            OwnCar.year
+        ).join(
+            ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
+        ).outerjoin(
+            AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
+        ).outerjoin(
+            Technicians, AssignedServices.technicians_id == Technicians.technicians_id
+        ).join(
+            OwnCar, ServicesRequest.car_id == OwnCar.car_id 
+        ).filter(
+            ServicesRequest.status.in_(['accepted', 'assigned'])
+        ).all()
 
-    # fetch all requests within the upcoming week for 'accepted' and 'assigned' statuses
-    service_requests = db.session.query(
-        ServicesRequest.service_request_id,
-        ServicesRequest.proposed_datetime,
-        ServicesRequest.status,
-        ServicesOffered.name.label('service_name'),
-        Technicians.first_name,
-        Technicians.last_name,
-        OwnCar.make,
-        OwnCar.model,
-        OwnCar.year
-    ).join(
-        ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
-    ).outerjoin(
-        AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
-    ).outerjoin(
-        Technicians, AssignedServices.technicians_id == Technicians.technicians_id
-    ).join(
-        OwnCar, ServicesRequest.car_id == OwnCar.car_id 
-    ).filter(
-        ServicesRequest.proposed_datetime >= week_start,
-        ServicesRequest.proposed_datetime < week_end,
-        ServicesRequest.status.in_(['accepted', 'assigned'])  # fetch both 'accepted' and 'assigned'
-    ).all()
+        accepted_requests = []
+        assigned_requests = []
+        for req in service_requests:
+            technician_name = f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned"
+            request_detail = {
+                'service_request_id': req.service_request_id,
+                'date': req.proposed_datetime.strftime('%Y-%m-%d'),
+                'date_time': req.proposed_datetime.strftime('%Y-%m-%d %H:%M'),
+                'service_name': req.service_name,
+                'technician_name': technician_name,
+                'car_info': {
+                    'make': req.make,
+                    'model': req.model,
+                    'year': req.year
+                },
+                'status': req.status
+            }
+            if req.status == 'accepted':
+                accepted_requests.append(request_detail)
+            elif req.status == 'assigned':
+                assigned_requests.append(request_detail)
 
-    accepted_requests = []
-    assigned_requests = []
-    for req in service_requests:
-        technician_name = f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned"
-        request_detail = {
-            'service_request_id': req.service_request_id,
-            'date': req.proposed_datetime.strftime('%Y-%m-%d'),
-            'date_time': req.proposed_datetime.strftime('%Y-%m-%d %H:%M'),
-            'service_name': req.service_name,
-            'technician_name': technician_name,
-            'car_info': {
-                'make': req.make,
-                'model': req.model,
-                'year': req.year
-            },
-            'status': req.status
-        }
-        if req.status == 'accepted':
-            accepted_requests.append(request_detail)
-        elif req.status == 'assigned':
-            assigned_requests.append(request_detail)
-
-    return jsonify({
-        'accepted_service_requests': accepted_requests,
-        'assigned_service_requests': assigned_requests
-    })
+        return jsonify({
+            'accepted_service_requests': accepted_requests,
+            'assigned_service_requests': assigned_requests
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     
 # get all available technicians on a specific day
 @app.route('/get_available_technicians', methods=['GET'])
