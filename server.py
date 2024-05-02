@@ -26,8 +26,8 @@ app = Flask(__name__)
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -1209,9 +1209,6 @@ def cars_details():
         total_filtered = filtered_cars.count()
         total_pages = ceil(total_filtered / per_page)
         filtered_cars = filtered_cars.offset((page - 1) * per_page).limit(per_page)
-        print("Total Filtered:", total_filtered)
-        print("Total Pages:", total_pages)
-        print("Current Page:", page)
 
         cars = [{'car_id': car.car_id, 'make': car.make, 'model': car.model,
                  'year': car.year, 'price': car.price, 'color': car.color,
@@ -1244,7 +1241,6 @@ def cars_details():
 
         # get the number of pages
         total_pages = math.ceil(total_cars / per_page)
-        print("Total Cars:", total_cars)
         
         return jsonify({'cars': cars, 'total_pages': total_pages, 'current_page': page}), 200
 
