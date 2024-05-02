@@ -1208,6 +1208,9 @@ def cars_details():
         total_filtered = filtered_cars.count()
         total_pages = ceil(total_filtered / per_page)
         filtered_cars = filtered_cars.offset((page - 1) * per_page).limit(per_page)
+        print("Total Filtered:", total_filtered)
+        print("Total Pages:", total_pages)
+        print("Current Page:", page)
 
         cars = [{'car_id': car.car_id, 'make': car.make, 'model': car.model,
                  'year': car.year, 'price': car.price, 'color': car.color,
@@ -1235,12 +1238,13 @@ def cars_details():
             'image': car.image0
         } for car in all_cars]
 
-        # get the total number of cars to display
-        total_cars = Cars.query.count()
+        # get the total number of cars to display if they are available
+        total_cars = Cars.query.filter(Cars.available==1).count()
 
         # get the number of pages
         total_pages = math.ceil(total_cars / per_page)
-
+        print("Total Cars:", total_cars)
+        
         return jsonify({'cars': cars, 'total_pages': total_pages, 'current_page': page}), 200
 
 #fetch the selected car infos
