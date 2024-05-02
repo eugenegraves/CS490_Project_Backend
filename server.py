@@ -14,22 +14,23 @@ from math import ceil
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import select
 from sqlalchemy import CheckConstraint
+from flask_mail import Mail, Message
+
+
 
 
 ''' Connection '''
 
 app = Flask(__name__)
 
-#hello
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
 
@@ -327,7 +328,7 @@ class FinanceContract(db.Model):
     loan_term = db.Column(db.Integer, nullable=False)
     loan_apr = db.Column(db.DECIMAL(5, 2), nullable=False)
     loan_monthly_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
-
+    down_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
 
 class ServiceReport(db.Model):
     __tablename__ = 'service_report'
@@ -1939,6 +1940,7 @@ def save_application():
         credit_score=data.get('credit_score'),
         finance_decision=data.get('finance_decision'),
         loan_term=data.get('loan_term'),
+        down_payment=data.get('down_payment'),
         loan_apr=data.get('loan_apr'),
         loan_monthly_payment=data.get('loan_monthly_payment')
     )
@@ -2170,9 +2172,38 @@ def get_finance_contract(customer_id):
                 'loan_monthly_payment': str(contract.loan_monthly_payment)  
             }
             contract_list.append(contract_info)
+            print(contract_list)
         return jsonify(contract_list)
     else:
         return jsonify({'error': 'Contracts not found'}), 404
+
+#Mail server
+# Mail server
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_DEFAULT_SENDER'] = 'velocitymotors35@gmail.com'
+app.config['MAIL_USERNAME'] = 'velocitymotors35@gmail.com'
+app.config['MAIL_PASSWORD'] = 'obcq mytf drsk nxmg'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
+
+@app.route('/emailContract', methods=['POST'])
+def email_contract():
+    pdf_file = request.files['pdf']
+    user_email = request.args.get('userEmail')
+    msg = Message("Your car's contract of purchase", recipients=[user_email])
+    msg.body = "Thank you for shopping with us, your contract is in the attachment."
+    msg.attach('contract.pdf', 'application/pdf', pdf_file.read())
+    try:
+        mail.send(msg)
+        return jsonify("We emailed you your contract"), 200
+    except Exception as e:
+        print("Error:", str(e))
+        return str(e), 500
+
+
 
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
