@@ -22,12 +22,12 @@ app = Flask(__name__)
 
 #hello
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -327,7 +327,7 @@ class FinanceContract(db.Model):
     loan_term = db.Column(db.Integer, nullable=False)
     loan_apr = db.Column(db.DECIMAL(5, 2), nullable=False)
     loan_monthly_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
-
+    down_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
 
 class ServiceReport(db.Model):
     __tablename__ = 'service_report'
@@ -1938,6 +1938,7 @@ def save_application():
         credit_score=data.get('credit_score'),
         finance_decision=data.get('finance_decision'),
         loan_term=data.get('loan_term'),
+        down_payment=data.get('down_payment'),
         loan_apr=data.get('loan_apr'),
         loan_monthly_payment=data.get('loan_monthly_payment')
     )
@@ -2169,6 +2170,7 @@ def get_finance_contract(customer_id):
                 'loan_monthly_payment': str(contract.loan_monthly_payment)  
             }
             contract_list.append(contract_info)
+            print(contract_list)
         return jsonify(contract_list)
     else:
         return jsonify({'error': 'Contracts not found'}), 404
