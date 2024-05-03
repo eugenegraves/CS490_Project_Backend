@@ -2189,8 +2189,8 @@ mail = Mail(app)
 def email_contract():
     pdf_file = request.files['pdf']
     user_email = request.args.get('userEmail')
-    msg = Message("Your car's contract of purchase", recipients=[user_email])
-    msg.body = "Thank you for shopping with us, your contract is in the attachment."
+    msg = Message("Purchase agreement for car(s)", recipients=[user_email])
+    msg.body = """Thank you for choosing us for your purchase. We are pleased to inform you that your contract is attached for your reference. If you have any questions or need further assistance, please don't hesitate to contact us."""
     msg.attach('contract.pdf', 'application/pdf', pdf_file.read())
     try:
         mail.send(msg)
