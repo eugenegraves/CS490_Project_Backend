@@ -1,0 +1,3611 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Velocity Motors - OpenAPI 3.0",
+    "description": "This API Document showcases and presnts all of our REST API calls to the backend. It's job is to visualize and have a interactive user-interface nd this was achieved using swagger.\n\n_Feel free to reach out if you have any further questions_\n\nSome useful links:\n- [The backend repository](https://github.com/eugenegraves/CS490_Project_Backend)\n- [Get started with adding swagger to your flask application](https://www.youtube.com/watch?v=ayn-I9sV7BU&ab_channel=VincentStevenson)",
+    "termsOfService": "http://swagger.io/terms/",
+    "contact": {
+      "email": "apiteam@swagger.io"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "1.0.11"
+  },
+  "externalDocs": {
+    "description": "Find out more about Swagger",
+    "url": "http://swagger.io"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "admin",
+      "description": "Everything that relates to admin",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "accessory",
+      "description": "Everything that relates to admin",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "car",
+      "description": "Everything that relates to car",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "customer",
+      "description": "Everything that relates to customer",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "item",
+      "description": "Everything that relates to items",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "technician",
+      "description": "Everything that relates to technician",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "manager",
+      "description": "Everything that relates to manager",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "request",
+      "description": "Everything that relates to request",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "service",
+      "description": "Everything that relates to services",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    }
+  ],
+  "paths": {
+    "/login_admin": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Admin login",
+        "description": "Authenticate and login admin",
+        "requestBody": {
+          "description": "JSON object containing usernames and password",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginAdminRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Technician ID, password, and first name are required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid admin ID, password, or first name"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/accessories": {
+      "post": {
+        "tags": [
+          "accessory"
+        ],
+        "summary": "Get accessories by category",
+        "description": "Retrieve accessories by a specified category.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "category"
+                ],
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "description": "Category of accessories to retrieve"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved accessories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/accessoires"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deleteAccessory": {
+      "post": {
+        "tags": [
+          "accessory"
+        ],
+        "summary": "Delete accessory",
+        "description": "Delete an accessory from the system by its ID.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accessoryID": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "ID of the accessory to be deleted"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accessory successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Confirmation message"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Accessory not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/addAccessory": {
+      "post": {
+        "tags": [
+          "accessory"
+        ],
+        "summary": "Add accessory",
+        "description": "Add a new accessory to the system.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accessoryData": {
+                    "type": "object",
+                    "required": [
+                      "name",
+                      "description",
+                      "price",
+                      "image",
+                      "category"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Name of the accessory"
+                      },
+                      "description": {
+                        "type": "string",
+                        "description": "Description of the accessory"
+                      },
+                      "price": {
+                        "type": "number",
+                        "format": "float",
+                        "description": "Price of the accessory"
+                      },
+                      "image": {
+                        "type": "string",
+                        "description": "URL of the accessory image"
+                      },
+                      "category": {
+                        "type": "string",
+                        "description": "Category of the accessory"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accessory added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Confirmation message"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/addAccessoryToCart": {
+      "post": {
+        "tags": [
+          "accessory"
+        ],
+        "summary": "Add accessory to cart",
+        "description": "Add an accessory to the customer's cart.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cartData": {
+                    "type": "object",
+                    "required": [
+                      "customer_id",
+                      "item_price",
+                      "item_image",
+                      "item_name",
+                      "accessoire_id"
+                    ],
+                    "properties": {
+                      "customer_id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID of the customer"
+                      },
+                      "item_price": {
+                        "type": "number",
+                        "format": "float",
+                        "description": "Price of the accessory"
+                      },
+                      "item_image": {
+                        "type": "string",
+                        "description": "URL of the accessory image"
+                      },
+                      "item_name": {
+                        "type": "string",
+                        "description": "Name of the accessory"
+                      },
+                      "accessoire_id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "ID of the accessory"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accessory added to cart successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Confirmation message"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/car_sold/{customer_id}": {
+      "get": {
+        "tags": [
+          "car"
+        ],
+        "summary": "Retrieve cars sold for a customer",
+        "description": "Retrieve a list of cars sold to a customer based on customer ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customer_id",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "ID of the customer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of cars sold to the customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/items_sold"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No items sold found for the customer ID and item type"
+          }
+        }
+      }
+    },
+    "/add_cars_to_site": {
+      "post": {
+        "tags": [
+          "car"
+        ],
+        "summary": "Add cars to the site",
+        "description": "Add cars to the dealership website",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cars": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/cars"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cars added successfully to the dealership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Cars added successfully to the dealership"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cars_details": {
+      "post": {
+        "tags": [
+          "car"
+        ],
+        "summary": "Display filtered cars or all cars if no filters applied",
+        "description": "Retrieve filtered cars based on specified criteria or all cars if no filters are applied. Only show available cars.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CarFilters"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved filtered cars",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Display all available cars",
+        "description": "Display all available cars with pagination support.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "description": "Page number for pagination"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "schema": {
+              "type": "integer",
+              "description": "Number of cars per page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved all available cars",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getCarInfos": {
+      "get": {
+        "tags": [
+          "car"
+        ],
+        "summary": "Get details of a specific car",
+        "description": "Retrieve detailed information about a specific car by its ID.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "car_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "description": "ID of the car to retrieve details for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved car details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cars"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Car not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Description of the error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/add_customer": {
+      "post": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Add new customer to database",
+        "description": "Add customer details to database, thus generating a customer_id",
+        "requestBody": {
+          "description": "Create a new customer",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/customers"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/customers"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/customers"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/customers"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/customers"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Customer not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/login_customer": {
+      "post": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Customer login",
+        "description": "Log in a customer with username and password",
+        "requestBody": {
+          "description": "Customer login credentials",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "usernames": {
+                    "type": "string",
+                    "description": "The username of the customer"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The password of the customer"
+                  }
+                },
+                "required": [
+                  "usernames",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customer_id": {
+                      "type": "integer",
+                      "description": "The ID of the customer"
+                    },
+                    "first_name": {
+                      "type": "string",
+                      "description": "The first name of the customer"
+                    },
+                    "last_name": {
+                      "type": "string",
+                      "description": "The last name of the customer"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "description": "The email address of the customer"
+                    },
+                    "phone": {
+                      "type": "string",
+                      "description": "The phone number of the customer"
+                    },
+                    "Address": {
+                      "type": "string",
+                      "description": "The address of the customer"
+                    },
+                    "password": {
+                      "type": "string",
+                      "description": "The password of the customer"
+                    },
+                    "usernames": {
+                      "type": "string",
+                      "description": "The username of the customer"
+                    },
+                    "social_security": {
+                      "type": "string",
+                      "description": "The social security number of the customer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Username and password are required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid username or password"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/get_customer_bank_details": {
+      "get": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Get customer bank details",
+        "description": "Retrieve bank details for a customer by customer_id",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "description": "The ID of the customer",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "bank_detail_id": {
+                        "type": "integer",
+                        "description": "The ID of the bank detail"
+                      },
+                      "bank_name": {
+                        "type": "string",
+                        "description": "The name of the bank"
+                      },
+                      "account_number": {
+                        "type": "string",
+                        "description": "The account number"
+                      },
+                      "routing_number": {
+                        "type": "string",
+                        "description": "The routing number"
+                      },
+                      "customer_id": {
+                        "type": "integer",
+                        "description": "The ID of the customer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Customer ID is required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "No bank details found for the specified customer."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/edit-customer/{customer_id}": {
+      "put": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Edit customer data",
+        "description": "Update the data of an existing customer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customer_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the customer to be edited"
+          }
+        ],
+        "requestBody": {
+          "description": "JSON object containing updated customer data",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditCustomerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User data updated successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Customer not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Invalid request method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Invalid request method"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_cart_items/{customer_id}": {
+      "get": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Retrieve cart items for a customer",
+        "description": "Retrieve a list of items in the cart for a given customer ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customer_id",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "ID of the customer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of cart items for the customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cart_items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/cart_item"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No items found in the cart for the customer"
+          }
+        }
+      }
+    },
+    "/delete_cart_item/{cartId}/{car_id}/{service_package_id}/{customer_id}": {
+      "delete": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Delete cart item(s)",
+        "description": "Delete one or more cart items based on the provided parameters",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cartId",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "ID of the cart item to delete"
+          },
+          {
+            "in": "path",
+            "name": "car_id",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "ID of the car"
+          },
+          {
+            "in": "path",
+            "name": "service_package_id",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "ID of the service package"
+          },
+          {
+            "in": "path",
+            "name": "customer_id",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "ID of the customer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Carts deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Carts deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Error message describing the issue"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/add_to_cart": {
+      "post": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Add item to cart",
+        "description": "Add an item to the customer's cart",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "ID of the customer"
+                  },
+                  "car_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "ID of the car"
+                  },
+                  "item_price": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "Price of the item"
+                  },
+                  "item_name": {
+                    "type": "string",
+                    "description": "Name of the item"
+                  },
+                  "item_image": {
+                    "type": "string",
+                    "description": "URL of the item image"
+                  },
+                  "item_service_offered_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true,
+                    "description": "ID of the service offered (optional)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Car added to cart successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Car added to cart successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Car already present in cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Car already present in cart"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error message describing the issue"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/add_own_car/{customer_id}": {
+      "post": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Add own car",
+        "description": "Add customer's own car to the database",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customer_id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "ID of the customer"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "car_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "ID of the car"
+                  },
+                  "make": {
+                    "type": "string",
+                    "description": "Make of the car"
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "Model of the car"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Car added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Car added successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Car ID already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Car ID already exists"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Customer not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/own_cars/{customer_id}": {
+      "get": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Get cars owned by a customer",
+        "description": "Retrieve a list of cars owned by a customer based on the customer ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customer_id",
+            "required": true,
+            "description": "ID of the customer",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of cars owned by the customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cars": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/own_car"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No cars found for the customer ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "No cars found for this customer ID"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete_own_car/{car_id}": {
+      "delete": {
+        "tags": [
+          "customer"
+        ],
+        "summary": "Delete a car owned by the customer",
+        "description": "Delete a car owned by the customer based on the car ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "car_id",
+            "required": true,
+            "description": "ID of the car to delete",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Car deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Car with ID 123 deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Car not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Car with ID 123 not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Internal server error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/items-sold/{customer_id}": {
+      "get": {
+        "tags": [
+          "item"
+        ],
+        "summary": "Get items sold by a customer",
+        "description": "Retrieve a list of items sold by a specific customer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customer_id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "The ID of the customer whose sold items are to be retrieved"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/items_sold"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No items found for the given customer ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "No items found for the given customer ID"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/add_technician": {
+      "post": {
+        "tags": [
+          "technician"
+        ],
+        "summary": "Add new technician to database",
+        "description": "Add technician details to database and generate a technician_id",
+        "requestBody": {
+          "description": "Create a new technician",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "admin_id": {
+                    "type": "integer",
+                    "description": "The ID of the admin (optional)"
+                  },
+                  "manager_id": {
+                    "type": "integer",
+                    "description": "The ID of the manager (optional)"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "description": "The first name of the technician"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "description": "The last name of the technician"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "The email address of the technician"
+                  },
+                  "username": {
+                    "type": "string",
+                    "description": "The username of the technician"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "The phone number of the technician"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The password of the technician"
+                  }
+                },
+                "required": [
+                  "firstName",
+                  "lastName",
+                  "email",
+                  "username",
+                  "phone",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/technicians"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/technicians"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Technician not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/login_technicians": {
+      "post": {
+        "tags": [
+          "technician"
+        ],
+        "summary": "Technician login",
+        "description": "Log in a technician with username and password",
+        "requestBody": {
+          "description": "Technician login credentials",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "usernames": {
+                    "type": "string",
+                    "description": "The username of the technician"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The password of the technician"
+                  }
+                },
+                "required": [
+                  "usernames",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "technicians_id": {
+                      "type": "integer",
+                      "description": "The ID of the technician"
+                    },
+                    "first_name": {
+                      "type": "string",
+                      "description": "The first name of the technician"
+                    },
+                    "last_name": {
+                      "type": "string",
+                      "description": "The last name of the technician"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "description": "The email address of the technician"
+                    },
+                    "phone": {
+                      "type": "string",
+                      "description": "The phone number of the technician"
+                    },
+                    "manager_id": {
+                      "type": "integer",
+                      "description": "The ID of the manager"
+                    },
+                    "usernames": {
+                      "type": "string",
+                      "description": "The username of the technician"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Technician ID, password, and first name are required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid technician ID, password, or first name"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/get_available_technicians": {
+      "get": {
+        "tags": [
+          "technician"
+        ],
+        "summary": "Get available technicians",
+        "description": "Retrieve a list of available technicians for a specified date",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "The date for which available technicians are requested (YYYY-MM-DD format)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AvailableTechnician"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid date format. Please use YYYY-MM-DD format."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/assign_technicians": {
+      "post": {
+        "tags": [
+          "technician"
+        ],
+        "summary": "Assign technicians to a service request",
+        "description": "Assign technicians to a service request and update its status",
+        "requestBody": {
+          "description": "JSON object containing technician_id and service_request_id",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTechniciansRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Technician assigned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Technician assigned successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Service request not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Technician already assigned to another service at this time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/add_manager": {
+      "post": {
+        "tags": [
+          "manager"
+        ],
+        "summary": "Add new manager to database",
+        "description": "Add manager details to database and generate a manager_id",
+        "requestBody": {
+          "description": "Create a new manager",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "admin_id": {
+                    "type": "integer",
+                    "description": "The ID of the admin (optional)"
+                  },
+                  "first_name": {
+                    "type": "string",
+                    "description": "The first name of the manager"
+                  },
+                  "last_name": {
+                    "type": "string",
+                    "description": "The last name of the manager"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "The email address of the manager"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "The phone number of the manager"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The password of the manager"
+                  },
+                  "usernames": {
+                    "type": "string",
+                    "description": "The password of the manager"
+                  }
+                },
+                "required": [
+                  "first_name",
+                  "last_name",
+                  "email",
+                  "phone",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Manager added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Manager added successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/login_managers": {
+      "post": {
+        "tags": [
+          "manager"
+        ],
+        "summary": "Manager login",
+        "description": "Authenticate and login manager",
+        "requestBody": {
+          "description": "JSON object containing usernames and password",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginManagerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerLoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Technician ID, password, and first name are required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid manager ID, password, or first name"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/get_upcoming_week_requests": {
+      "get": {
+        "tags": [
+          "request"
+        ],
+        "summary": "Get upcoming week service requests",
+        "description": "Retrieve service requests scheduled for the upcoming week",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted_service_requests": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ServiceRequest"
+                      }
+                    },
+                    "assigned_service_requests": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ServiceRequest"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/services-offered": {
+      "get": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Get all services offered",
+        "description": "Retrieve a list of all services offered",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/services_offered"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Client error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Bad request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/show_assigned_services/{technicians_id}": {
+      "get": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Show assigned services for a technician",
+        "description": "Retrieves a list of services assigned to a technician",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "technicians_id",
+            "required": true,
+            "description": "ID of the technician",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignedService"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Technician not found or no assigned services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "No assigned services found for the technician"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ServicesPackage": {
+      "get": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Get service packages",
+        "description": "Retrieves a list of available service packages",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/services_package"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/show_customer_service_requests/": {
+      "get": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Get pending service requests for customers",
+        "description": "Retrieves a list of pending service requests for customers",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerServiceRequest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/update_customer_service_requests/{service_request_id}": {
+      "patch": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Update status of a customer service request",
+        "description": "Updates the status of a customer service request identified by its ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_request_id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "ID of the service request to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "accepted",
+                      "assigned",
+                      "completed",
+                      "cancelled"
+                    ],
+                    "example": "accepted"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Service request updated successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service request not found"
+          }
+        }
+      }
+    },
+    "/service-request": {
+      "post": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Create a new service request",
+        "description": "Creates a new service request in the system",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_ID": {
+                    "type": "integer",
+                    "description": "The ID of the customer making the request",
+                    "example": 123
+                  },
+                  "service_offered": {
+                    "type": "integer",
+                    "description": "The ID of the service offered",
+                    "example": 456
+                  },
+                  "car_id": {
+                    "type": "integer",
+                    "description": "The ID of the car requiring the service",
+                    "example": 789
+                  },
+                  "proposed_datetime": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The proposed date and time for the service",
+                    "example": "2024-04-24T10:00:00"
+                  }
+                },
+                "required": [
+                  "customer_ID",
+                  "service_offered",
+                  "car_id",
+                  "proposed_datetime"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Service request created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Service request created successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed"
+          }
+        }
+      }
+    },
+    "/customer_service_requests/{customer_id}": {
+      "get": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Retrieve service requests for a customer",
+        "description": "Retrieve a list of service requests made by a customer based on customer ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customer_id",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true,
+            "description": "ID of the customer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of service requests for the customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/service_request"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No service requests found for the customer"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "accessoires": {
+        "type": "object",
+        "properties": {
+          "accessoire_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the accessory"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the accessory"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the accessory"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Price of the accessory"
+          },
+          "category": {
+            "type": "string",
+            "example": "cover"
+          }
+        },
+        "xml": {
+          "name": "accessoires"
+        }
+      },
+      "admin": {
+        "required": [
+          "admin_id",
+          "first_name",
+          "last_name",
+          "username",
+          "phone",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "admin_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "first_name": {
+            "type": "string",
+            "example": "fred"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "dates"
+          },
+          "username": {
+            "type": "string",
+            "example": "freddates123"
+          },
+          "phone": {
+            "type": "string",
+            "example": "123-456-7890"
+          },
+          "password": {
+            "type": "string",
+            "example": "passwoord"
+          }
+        },
+        "xml": {
+          "name": "admin"
+        }
+      },
+      "assigned_services": {
+        "required": [
+          "assigned_service_id",
+          "technicians_id",
+          "service_request_id"
+        ],
+        "type": "object",
+        "properties": {
+          "assigned_service_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "technicians_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "service_request_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          }
+        },
+        "xml": {
+          "name": "assigned_services"
+        }
+      },
+      "cars": {
+        "type": "object",
+        "properties": {
+          "manager_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the manager responsible for the car"
+          },
+          "make": {
+            "type": "string",
+            "description": "Make of the car"
+          },
+          "model": {
+            "type": "string",
+            "description": "Model of the car"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Year of the car"
+          },
+          "color": {
+            "type": "string",
+            "description": "Color of the car"
+          },
+          "engine": {
+            "type": "string",
+            "description": "Engine type of the car"
+          },
+          "transmission": {
+            "type": "string",
+            "description": "Transmission type of the car"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Price of the car"
+          },
+          "image0": {
+            "type": "string",
+            "description": "URL of the first image of the car"
+          },
+          "image1": {
+            "type": "string",
+            "description": "URL of the second image of the car"
+          },
+          "image2": {
+            "type": "string",
+            "description": "URL of the third image of the car"
+          },
+          "image3": {
+            "type": "string",
+            "description": "URL of the fourth image of the car"
+          },
+          "image4": {
+            "type": "string",
+            "description": "URL of the fifth image of the car"
+          },
+          "available": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Indicator of car availability (1 for available, 0 for not available)"
+          }
+        },
+        "xml": {
+          "name": "cars"
+        }
+      },
+      "cart": {
+        "type": "object",
+        "properties": {
+          "cart_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "item_price": {
+            "type": "number",
+            "format": "float",
+            "example": 45
+          },
+          "item_image": {
+            "type": "string",
+            "example": "https://www.addcarpicurl.com"
+          },
+          "item_name": {
+            "type": "string",
+            "example": "item name"
+          },
+          "car_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 4
+          },
+          "accessoire_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 5
+          },
+          "service_offered_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "service_package_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 7
+          }
+        },
+        "xml": {
+          "name": "cart"
+        }
+      },
+      "customers": {
+        "required": [
+          "first_name",
+          "last_name",
+          "email",
+          "username",
+          "phone",
+          "Address",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "first_name": {
+            "type": "string",
+            "example": "john"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "doe"
+          },
+          "usernames": {
+            "type": "string",
+            "example": "johndoe456"
+          },
+          "phone": {
+            "type": "string",
+            "example": "123-456-789"
+          },
+          "Address": {
+            "type": "string",
+            "example": "123 that street"
+          },
+          "password": {
+            "type": "string",
+            "example": "theyandthat456"
+          },
+          "social_security": {
+            "type": "string",
+            "example": 987654321
+          }
+        },
+        "xml": {
+          "name": "customers"
+        }
+      },
+      "customers_bank_details": {
+        "required": [
+          "bank_name",
+          "account_number",
+          "routing_number",
+          "customer_id"
+        ],
+        "type": "object",
+        "properties": {
+          "bank_detail_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2
+          },
+          "bank_name": {
+            "type": "string",
+            "example": "Chase Bank"
+          },
+          "account_number": {
+            "type": "integer",
+            "format": "int64",
+            "example": 6789012345678901
+          },
+          "routing_number": {
+            "type": "integer",
+            "format": "int64",
+            "example": 678901234
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2
+          },
+          "credit_score": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2
+          }
+        },
+        "xml": {
+          "name": "customers_bank_details"
+        }
+      },
+      "finance_contracts": {
+        "required": [
+          "first_name",
+          "last_name",
+          "email",
+          "phone_number",
+          "address",
+          "car_year",
+          "car_make",
+          "car_model",
+          "car_price",
+          "credit_score",
+          "finance_decision",
+          "loan_term",
+          "loan_apr",
+          "loan_monthly_payment",
+          "customer_id"
+        ],
+        "type": "object",
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "example": "john"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "doe"
+          },
+          "address": {
+            "type": "string",
+            "example": "123 that street"
+          },
+          "phone_number": {
+            "type": "string",
+            "example": "123-456-789"
+          },
+          "car_year": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2023
+          },
+          "car_make": {
+            "type": "string",
+            "example": "Honda"
+          },
+          "car_model": {
+            "type": "string",
+            "example": "Accord"
+          },
+          "car_price": {
+            "type": "number",
+            "format": "float",
+            "example": 45999
+          },
+          "credit_score": {
+            "type": "integer",
+            "format": "int64",
+            "example": 750
+          },
+          "finance_decision": {
+            "type": "string",
+            "example": "approve"
+          },
+          "loan_term": {
+            "type": "integer",
+            "format": "int64",
+            "example": 12
+          },
+          "loan_apr": {
+            "type": "number",
+            "format": "double",
+            "example": 4.9
+          },
+          "loan_monthly_payment": {
+            "type": "number",
+            "format": "double",
+            "example": 459.99
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          }
+        },
+        "xml": {
+          "name": "finance_contracts"
+        }
+      },
+      "items_sold": {
+        "type": "object",
+        "properties": {
+          "item_sold_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "item_type": {
+            "type": "string",
+            "example": "car"
+          },
+          "name": {
+            "type": "string",
+            "example": "Sedan"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-04-24T10:00:00"
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "example": 20000
+          },
+          "item_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 456
+          },
+          "method_of_payment": {
+            "type": "string",
+            "example": "cash"
+          }
+        },
+        "xml": {
+          "name": "items_sold"
+        }
+      },
+      "managers": {
+        "required": [
+          "first_name",
+          "last_name",
+          "email",
+          "usernames",
+          "phone",
+          "password",
+          "admin_id"
+        ],
+        "type": "object",
+        "properties": {
+          "manager_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "first_name": {
+            "type": "string",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "Smith"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.smith@example.com"
+          },
+          "usernames": {
+            "type": "string",
+            "example": "johnsmith123"
+          },
+          "phone": {
+            "type": "string",
+            "example": "123-456-7890"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123"
+          },
+          "admin_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "xml": {
+          "name": "managers"
+        }
+      },
+      "offer": {
+        "required": [
+          "offer_price",
+          "offer_status",
+          "customer_id",
+          "car_id"
+        ],
+        "type": "object",
+        "properties": {
+          "offer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "offer_price": {
+            "type": "number",
+            "format": "float",
+            "example": 15000
+          },
+          "offer_status": {
+            "type": "string",
+            "example": "pending"
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "car_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "xml": {
+          "name": "offer"
+        }
+      },
+      "own_car": {
+        "type": "object",
+        "properties": {
+          "car_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the car"
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the customer"
+          },
+          "make": {
+            "type": "string",
+            "description": "Make of the car"
+          },
+          "model": {
+            "type": "string",
+            "description": "Model of the car"
+          },
+          "year": {
+            "type": "string",
+            "description": "Model of the car"
+          }
+        },
+        "xml": {
+          "name": "own_car"
+        }
+      },
+      "service_report": {
+        "type": "object",
+        "properties": {
+          "service_report_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "assigned_service_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "report": {
+            "type": "string",
+            "example": "leave a report"
+          }
+        },
+        "xml": {
+          "name": "service_report"
+        }
+      },
+      "services_offered": {
+        "type": "object",
+        "properties": {
+          "services_offered_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Oil Change"
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "example": 49.99
+          },
+          "description": {
+            "type": "string",
+            "example": "Includes oil change and replacement of oil filter"
+          },
+          "image": {
+            "type": "string",
+            "example": "https://ibb.co/JmbCqpR"
+          }
+        },
+        "xml": {
+          "name": "services_offered"
+        }
+      },
+      "services_package": {
+        "type": "object",
+        "properties": {
+          "service_package_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Basic Service Package"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "example": 99.99
+          },
+          "description": {
+            "type": "string",
+            "example": "Basic service package including oil change, tire rotation, and vehicle inspection."
+          },
+          "image": {
+            "type": "string",
+            "example": "https://example.com/service_package_image.jpg"
+          }
+        },
+        "xml": {
+          "name": "services_package"
+        }
+      },
+      "service_request": {
+        "type": "object",
+        "properties": {
+          "service_request_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 123
+          },
+          "service_name": {
+            "type": "string",
+            "example": "Oil Change"
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "example": 50
+          },
+          "description": {
+            "type": "string",
+            "example": "Regular oil change"
+          },
+          "proposed_datetime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-04-25T10:00:00"
+          },
+          "status": {
+            "type": "string",
+            "example": "pending"
+          },
+          "car_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 456
+          },
+          "service_offered_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 789
+          }
+        },
+        "xml": {
+          "name": "service_request"
+        }
+      },
+      "subscribded_services": {
+        "required": [
+          "customer_id",
+          "service_package_id"
+        ],
+        "type": "object",
+        "properties": {
+          "subscribed_service_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "service_package_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "xml": {
+          "name": "subscribded_services"
+        }
+      },
+      "technicians": {
+        "required": [
+          "first_name",
+          "last_name",
+          "email",
+          "usernames",
+          "phone",
+          "password",
+          "manager_id"
+        ],
+        "type": "object",
+        "properties": {
+          "technicians_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "first_name": {
+            "type": "string",
+            "example": "Adam"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "Taylor"
+          },
+          "email": {
+            "type": "string",
+            "example": "adam.taylor@example.com"
+          },
+          "usernames": {
+            "type": "string",
+            "example": "adamtaylor123"
+          },
+          "phone": {
+            "type": "string",
+            "example": "123-456-7890"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123"
+          },
+          "manager_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "xml": {
+          "name": "technicians"
+        }
+      },
+      "test_drive_appointments": {
+        "required": [
+          "appointment_date",
+          "status",
+          "customer_id",
+          "car_id"
+        ],
+        "type": "object",
+        "properties": {
+          "appointment_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "appointment_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2024-02-28 10:00:00.000000"
+          },
+          "status": {
+            "type": "string",
+            "example": "pending"
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "car_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "xml": {
+          "name": "test_drive_appointments"
+        }
+      },
+      "ServiceRequest": {
+        "type": "object",
+        "properties": {
+          "service_request_id": {
+            "type": "integer",
+            "description": "The ID of the service request"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "The date of the service request"
+          },
+          "date_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of the service request"
+          },
+          "service_name": {
+            "type": "string",
+            "description": "The name of the service requested"
+          },
+          "technician_name": {
+            "type": "string",
+            "description": "The name of the assigned technician"
+          },
+          "car_info": {
+            "type": "object",
+            "properties": {
+              "make": {
+                "type": "string",
+                "description": "The make of the car"
+              },
+              "model": {
+                "type": "string",
+                "description": "The model of the car"
+              },
+              "year": {
+                "type": "integer",
+                "description": "The year of the car"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the service request"
+          }
+        }
+      },
+      "AvailableTechnician": {
+        "type": "object",
+        "properties": {
+          "technician_id": {
+            "type": "integer",
+            "description": "The ID of the technician"
+          },
+          "full_name": {
+            "type": "string",
+            "description": "The full name of the technician"
+          },
+          "job_count": {
+            "type": "integer",
+            "description": "The number of jobs assigned to the technician for the specified date"
+          }
+        }
+      },
+      "AssignTechniciansRequest": {
+        "type": "object",
+        "properties": {
+          "technician_id": {
+            "type": "integer",
+            "description": "The ID of the technician to be assigned"
+          },
+          "service_request_id": {
+            "type": "integer",
+            "description": "The ID of the service request to which the technician will be assigned"
+          }
+        }
+      },
+      "LoginManagerRequest": {
+        "type": "object",
+        "properties": {
+          "usernames": {
+            "type": "string",
+            "description": "The username of the manager"
+          },
+          "password": {
+            "type": "string",
+            "description": "The password of the manager"
+          }
+        }
+      },
+      "ManagerLoginResponse": {
+        "$ref": "#/components/schemas/managers"
+      },
+      "LoginAdminRequest": {
+        "type": "object",
+        "properties": {
+          "usernames": {
+            "type": "string",
+            "description": "The username of the admin"
+          },
+          "password": {
+            "type": "string",
+            "description": "The password of the admin"
+          }
+        }
+      },
+      "AdminLoginResponse": {
+        "$ref": "#/components/schemas/admin"
+      },
+      "EditCustomerRequest": {
+        "type": "object",
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "description": "The updated first name of the customer"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "The updated last name of the customer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The updated email address of the customer"
+          },
+          "usernames": {
+            "type": "string",
+            "description": "The updated username of the customer"
+          },
+          "phone": {
+            "type": "string",
+            "description": "The updated phone number of the customer"
+          },
+          "Address": {
+            "type": "string",
+            "description": "The updated address of the customer"
+          },
+          "password": {
+            "type": "string",
+            "description": "The updated password of the customer"
+          },
+          "social_security": {
+            "type": "string",
+            "description": "The updated social security number of the customer"
+          }
+        }
+      },
+      "AssignedService": {
+        "type": "object",
+        "properties": {
+          "assigned_service_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "service_request_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "technician_first_name": {
+            "type": "string",
+            "example": "John"
+          },
+          "technician_last_name": {
+            "type": "string",
+            "example": "Doe"
+          },
+          "technician_email": {
+            "type": "string",
+            "example": "john.doe@example.com"
+          },
+          "technician_phone": {
+            "type": "string",
+            "example": "123-456-7890"
+          },
+          "service_name": {
+            "type": "string",
+            "example": "Oil Change"
+          },
+          "service_price": {
+            "type": "number",
+            "format": "double",
+            "example": 49.99
+          },
+          "service_description": {
+            "type": "string",
+            "example": "Includes oil change and replacement of oil filter"
+          },
+          "proposed_datetime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2024-03-18T10:00:00"
+          },
+          "status": {
+            "type": "string",
+            "example": "assigned"
+          },
+          "car_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "service_offered_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "customer_first_name": {
+            "type": "string",
+            "example": "Jane"
+          },
+          "customer_last_name": {
+            "type": "string",
+            "example": "Smith"
+          },
+          "customer_phone": {
+            "type": "string",
+            "example": "987-654-3210"
+          }
+        }
+      },
+      "CustomerServiceRequest": {
+        "type": "object",
+        "properties": {
+          "service_request_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "service_name": {
+            "type": "string",
+            "example": "Oil Change"
+          },
+          "service_price": {
+            "type": "number",
+            "format": "float",
+            "example": 49.99
+          },
+          "description": {
+            "type": "string",
+            "example": "Includes oil change and replacement of oil filter"
+          },
+          "proposed_datetime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-04-23T10:00:00"
+          },
+          "status": {
+            "type": "string",
+            "example": "pending"
+          },
+          "car_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "service_offered_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "customer_username": {
+            "type": "string",
+            "example": "johndoe456"
+          },
+          "customer_phone": {
+            "type": "string",
+            "example": "123-456-7890"
+          }
+        }
+      },
+      "CarFilters": {
+        "type": "object",
+        "properties": {
+          "make": {
+            "type": "string",
+            "description": "Make of the car"
+          },
+          "model": {
+            "type": "string",
+            "description": "Model of the car"
+          },
+          "color": {
+            "type": "string",
+            "description": "Color of the car"
+          },
+          "budget": {
+            "type": "string",
+            "description": "Budget range for the car"
+          }
+        },
+        "example": {
+          "make": "Honda",
+          "model": "Civic",
+          "color": "Blue",
+          "budget": "$10000-20000"
+        }
+      },
+      "CarListResponse": {
+        "type": "object",
+        "properties": {
+          "cars": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CarDetails"
+            }
+          },
+          "total_pages": {
+            "type": "integer",
+            "description": "Total number of pages"
+          },
+          "current_page": {
+            "type": "integer",
+            "description": "Current page number"
+          }
+        }
+      },
+      "CarDetails": {
+        "type": "object",
+        "properties": {
+          "car_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the car"
+          },
+          "make": {
+            "type": "string",
+            "description": "Make of the car"
+          },
+          "model": {
+            "type": "string",
+            "description": "Model of the car"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Year of the car"
+          },
+          "color": {
+            "type": "string",
+            "description": "Color of the car"
+          },
+          "engine": {
+            "type": "string",
+            "description": "Engine type of the car"
+          },
+          "transmission": {
+            "type": "string",
+            "description": "Transmission type of the car"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Price of the car"
+          },
+          "image": {
+            "type": "string",
+            "description": "URL of the car image"
+          },
+          "available": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Indicator of car availability (1 for available, 0 for not available)"
+          }
+        }
+      }
+    }
+  }
+}

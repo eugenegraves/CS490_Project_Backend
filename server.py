@@ -13,11 +13,35 @@ from math import ceil
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import select
 from sqlalchemy import CheckConstraint
+from flask_swagger_ui import get_swaggerui_blueprint
 
 
 ''' Connection '''
 
 app = Flask(__name__)
+
+SWAGGER_URL = '/api/docs'  # URL for exposing Swagger UI (without trailing '/')
+API_URL = '/static/swagger.json'  # Our API url (can of course be a local resource)
+
+# Call factory function to create our blueprint
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,  # Swagger UI static files will be mapped to '{SWAGGER_URL}/dist/'
+    API_URL,
+    config={  # Swagger UI config overrides
+        'app_name': "Test application"
+    },
+    # oauth_config={  # OAuth config. See https://github.com/swagger-api/swagger-ui#oauth2-configuration .
+    #    'clientId': "your-client-id",
+    #    'clientSecret': "your-client-secret-if-required",
+    #    'realm': "your-realms",
+    #    'appName': "your-app-name",
+    #    'scopeSeparator': " ",
+    #    'additionalQueryStringParams': {'test': "hello"}
+    # }
+)
+
+app.register_blueprint(swaggerui_blueprint)
+
 
 #hello
 
@@ -25,8 +49,8 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -326,12 +350,12 @@ def add_manager():
     data=request.get_json()
     if 'admin_id' in data:
         manager=Managers(
-            firstName=data['first_name'],
-            lastName=data['last_name'],
+            first_name=data['first_name'],
+            last_name=data['last_name'],
             email=data['email'],
             phone=data['phone'],
             password=data['password'],
-            admin_id=data['admin_id']
+            admin_id=data['admin_id'] 
         )
     else:
         manager=Managers(
@@ -1007,7 +1031,7 @@ def add_car(customer_id):
     if not customer:
         return jsonify({'error': 'Customer not found'}), 404
 
-    new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model)
+    new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model) # add year='' or make it so its null
 
     db.session.add(new_car)
     db.session.commit()
