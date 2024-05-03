@@ -6,13 +6,17 @@ from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
 from sqlalchemy import text, func, and_, update, case
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import calendar
 from sqlalchemy.exc import IntegrityError
 import math
 from math import ceil
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import select
 from sqlalchemy import CheckConstraint
+from flask_mail import Mail, Message
+
+
 from flask_swagger_ui import get_swaggerui_blueprint
 
 
@@ -44,15 +48,37 @@ app.register_blueprint(swaggerui_blueprint)
 
 
 #hello
+SWAGGER_URL = '/api/docs'  # URL for exposing Swagger UI (without trailing '/')
+API_URL = '/static/swagger.json'  # Our API url (can of course be a local resource)
+
+# Call factory function to create our blueprint
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,  # Swagger UI static files will be mapped to '{SWAGGER_URL}/dist/'
+    API_URL,
+    config={  # Swagger UI config overrides
+        'app_name': "Test application"
+    },
+    # oauth_config={  # OAuth config. See https://github.com/swagger-api/swagger-ui#oauth2-configuration .
+    #    'clientId': "your-client-id",
+    #    'clientSecret': "your-client-secret-if-required",
+    #    'realm': "your-realms",
+    #    'appName': "your-app-name",
+    #    'scopeSeparator': " ",
+    #    'additionalQueryStringParams': {'test': "hello"}
+    # }
+)
+
+app.register_blueprint(swaggerui_blueprint)
+
+
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@localhost/cars_dealershipx' # Ismael connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+##app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app)
 
@@ -138,18 +164,32 @@ class ItemSold(db.Model):
     item_sold_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
     item_type = db.Column(db.String(45), nullable=False)
+    name = db.Column(db.String(255), nullable=True)
     date = db.Column(db.DateTime(6), nullable=False, default=datetime.utcnow)
     price = db.Column(db.Float, nullable=False)
     item_id = db.Column(db.Integer, nullable=False)
     method_of_payment = db.Column(db.String(45), default=None)
 
-    def __init__(self, customer_id, item_type, date, price, item_id, method_of_payment=None):
+    def __init__(self, customer_id, item_type, name, date, price, item_id, method_of_payment=None):
         self.customer_id = customer_id
         self.item_type = item_type
+        self.name = name
         self.date = date
         self.price = price
         self.item_id = item_id
         self.method_of_payment = method_of_payment
+
+    def serialize(self):
+        return {
+            "id": self.item_sold_id,
+            "customer_id": self.customer_id,
+            "item_type": self.item_type,
+            "name": self.name,
+            "date": self.date.isoformat(),  # Convert datetime to ISO format for JSON
+            "price": self.price,
+            "item_id": self.item_id,
+            "method_of_payment": self.method_of_payment
+        }
 
     def __repr__(self):
         return f'<ItemSold {self.item_sold_id}>'
@@ -219,6 +259,22 @@ class Cart(db.Model):
     accessoire_id = db.Column(db.Integer, db.ForeignKey('accessoires.accessoire_id'))
     service_offered_id = db.Column(db.Integer, db.ForeignKey('services_offered.services_offered_id'))
     service_package_id = db.Column(db.Integer, db.ForeignKey('services_package.service_package_id'))
+    service_request_id = db.Column(db.Integer)
+
+    def serialize(self):
+        return {
+            "cart_id": self.cart_id,
+            "customer_id": self.customer_id,
+            "item_price": self.item_price,
+            "item_image": self.item_image,
+            "item_name": self.item_name,
+            "car_id": self.car_id,
+            "accessoire_id": self.accessoire_id,
+            "service_offered_id": self.service_offered_id,
+            "service_package_id": self.service_package_id,
+            "service_request_id": self.service_request_id
+        }
+
 
 class Accessoire(db.Model):
     __tablename__ = 'accessoires'
@@ -268,9 +324,11 @@ class CustomersBankDetails(db.Model):
 
     bank_detail_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     bank_name = db.Column(db.String(45), nullable=False)
-    account_number = db.Column(db.String(20), nullable=False)  # Assuming account numbers are strings
-    routing_number = db.Column(db.String(20), nullable=False)  # Assuming routing numbers are strings
+    account_number = db.Column(db.String(20), nullable=False)  
+    routing_number = db.Column(db.String(20), nullable=False)  
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
+    credit_score = db.Column(db.Integer)  
+
 
     customer = db.relationship('Customer', backref=db.backref('bank_details', lazy=True))
 
@@ -299,6 +357,35 @@ class Offers(db.Model):
     customer_id=db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
     car_id=db.Column(db.Integer, db.ForeignKey('cars.car_id'), nullable=False)
     
+class FinanceContract(db.Model):
+    __tablename__ = 'finance_contracts'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    first_name = db.Column(db.String(255), nullable=False)
+    last_name = db.Column(db.String(255), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.customer_id'), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
+    phone_number = db.Column(db.String(255), nullable=False)
+    car_year = db.Column(db.Integer, nullable=False)
+    car_make = db.Column(db.String(255), nullable=False)
+    car_model = db.Column(db.String(255), nullable=False)
+    car_price = db.Column(db.DECIMAL(10, 2), nullable=False)
+    credit_score = db.Column(db.Integer, nullable=False)
+    finance_decision = db.Column(db.String(255), nullable=False)
+    loan_term = db.Column(db.Integer, nullable=False)
+    loan_apr = db.Column(db.DECIMAL(5, 2), nullable=False)
+    loan_monthly_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
+    down_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
+
+class ServiceReport(db.Model):
+    __tablename__ = 'service_report'
+    service_report_id = db.Column(db.Integer, primary_key=True)
+    assigned_service_id = db.Column(db.Integer, db.ForeignKey('assigned_services.assigned_service_id'))
+    report = db.Column(db.String(1000))
+
+    def __repr__(self):
+        return f"<ServiceReport {self.service_report_id}>"
 
 @app.route('/add_customer', methods=['POST'])
 def add_customer():
@@ -335,7 +422,7 @@ def add_technician():
         first_name=data['firstName'],
         last_name=data['lastName'],
         email=data['email'],
-        usernames=data['username'],  # corrected 'usernames' to 'username'
+        usernames=data['username'], 
         phone=data['phone'],
         password=data['password'],
         manager_id=manager_id
@@ -350,9 +437,10 @@ def add_manager():
     data=request.get_json()
     if 'admin_id' in data:
         manager=Managers(
-            first_name=data['first_name'],
-            last_name=data['last_name'],
+            first_name=data['firstName'],
+            last_name=data['lastName'],
             email=data['email'],
+            usernames=data['username'],
             phone=data['phone'],
             password=data['password'],
             admin_id=data['admin_id'] 
@@ -437,71 +525,69 @@ def get_customer_bank_details():
             'bank_name': bank.bank_name,
             'account_number': bank.account_number,
             'routing_number': bank.routing_number,
-            'customer_id': bank.customer_id
+            'customer_id': bank.customer_id,
+            'credit_score': bank.credit_score
         }
         for bank in bank_details
     ]
 
     return jsonify(bank_details_list)
 
-# returns all the service requests in the next week
+# returns all future service requests
 @app.route('/get_upcoming_week_requests', methods=['GET'])
 def get_upcoming_week_requests():
-    today = datetime.today()
-    week_start = datetime(today.year, today.month, today.day)
-    week_end = week_start + timedelta(days=7)
+    try:
+        # Fetch all requests for 'accepted' and 'assigned' statuses
+        service_requests = db.session.query(
+            ServicesRequest.service_request_id,
+            ServicesRequest.proposed_datetime,
+            ServicesRequest.status,
+            ServicesOffered.name.label('service_name'),
+            Technicians.first_name,
+            Technicians.last_name,
+            OwnCar.make,
+            OwnCar.model,
+            OwnCar.year
+        ).join(
+            ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
+        ).outerjoin(
+            AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
+        ).outerjoin(
+            Technicians, AssignedServices.technicians_id == Technicians.technicians_id
+        ).join(
+            OwnCar, ServicesRequest.car_id == OwnCar.car_id 
+        ).filter(
+            ServicesRequest.status.in_(['accepted', 'assigned'])
+        ).all()
 
-    # fetch all requests within the upcoming week for 'accepted' and 'assigned' statuses
-    service_requests = db.session.query(
-        ServicesRequest.service_request_id,
-        ServicesRequest.proposed_datetime,
-        ServicesRequest.status,
-        ServicesOffered.name.label('service_name'),
-        Technicians.first_name,
-        Technicians.last_name,
-        OwnCar.make,
-        OwnCar.model,
-        OwnCar.year
-    ).join(
-        ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
-    ).outerjoin(
-        AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
-    ).outerjoin(
-        Technicians, AssignedServices.technicians_id == Technicians.technicians_id
-    ).join(
-        OwnCar, ServicesRequest.car_id == OwnCar.car_id 
-    ).filter(
-        ServicesRequest.proposed_datetime >= week_start,
-        ServicesRequest.proposed_datetime < week_end,
-        ServicesRequest.status.in_(['accepted', 'assigned'])  # fetch both 'accepted' and 'assigned'
-    ).all()
+        accepted_requests = []
+        assigned_requests = []
+        for req in service_requests:
+            technician_name = f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned"
+            request_detail = {
+                'service_request_id': req.service_request_id,
+                'date': req.proposed_datetime.strftime('%Y-%m-%d'),
+                'date_time': req.proposed_datetime.strftime('%Y-%m-%d %H:%M'),
+                'service_name': req.service_name,
+                'technician_name': technician_name,
+                'car_info': {
+                    'make': req.make,
+                    'model': req.model,
+                    'year': req.year
+                },
+                'status': req.status
+            }
+            if req.status == 'accepted':
+                accepted_requests.append(request_detail)
+            elif req.status == 'assigned':
+                assigned_requests.append(request_detail)
 
-    accepted_requests = []
-    assigned_requests = []
-    for req in service_requests:
-        technician_name = f"{req.first_name} {req.last_name}" if req.first_name and req.last_name else "No Technician Assigned"
-        request_detail = {
-            'service_request_id': req.service_request_id,
-            'date': req.proposed_datetime.strftime('%Y-%m-%d'),
-            'date_time': req.proposed_datetime.strftime('%Y-%m-%d %H:%M'),
-            'service_name': req.service_name,
-            'technician_name': technician_name,
-            'car_info': {
-                'make': req.make,
-                'model': req.model,
-                'year': req.year
-            },
-            'status': req.status
-        }
-        if req.status == 'accepted':
-            accepted_requests.append(request_detail)
-        elif req.status == 'assigned':
-            assigned_requests.append(request_detail)
-
-    return jsonify({
-        'accepted_service_requests': accepted_requests,
-        'assigned_service_requests': assigned_requests
-    })
+        return jsonify({
+            'accepted_service_requests': accepted_requests,
+            'assigned_service_requests': assigned_requests
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     
 # get all available technicians on a specific day
 @app.route('/get_available_technicians', methods=['GET'])
@@ -889,21 +975,27 @@ def get_car_sold(customer_id):
 
 @app.route('/customer_service_requests/<int:customer_id>', methods=['GET'])
 def get_customer_service_requests(customer_id):
-   
     service_requests = db.session.query(
         ServicesRequest, ServicesOffered.name, ServicesOffered.price,
         ServicesOffered.description, ServicesRequest.proposed_datetime,
         ServicesRequest.status, ServicesRequest.car_id,
-        ServicesRequest.service_offered_id
+        ServicesRequest.service_offered_id, AssignedServices.assigned_service_id
     ).join(
         ServicesOffered, ServicesRequest.service_offered_id == ServicesOffered.services_offered_id
+    ).outerjoin(
+        AssignedServices, ServicesRequest.service_request_id == AssignedServices.service_request_id
     ).filter(
         ServicesRequest.customer_id == customer_id
     ).all()
 
-    
     result = []
-    for request, service_name, price, description, proposed_datetime, status, car_id, service_offered_id in service_requests:
+    for request, service_name, price, description, proposed_datetime, status, car_id, service_offered_id, assigned_service_id in service_requests:
+        report = None
+        if assigned_service_id and status == 'serviced-closed':
+            service_report = ServiceReport.query.filter_by(assigned_service_id=assigned_service_id).first()
+            if service_report:
+                report = service_report.report
+
         result.append({
             'service_request_id': request.service_request_id,
             'service_name': service_name,
@@ -912,10 +1004,13 @@ def get_customer_service_requests(customer_id):
             'proposed_datetime': proposed_datetime.strftime('%Y-%m-%d %H:%M:%S'),
             'status': status,
             'car_id': car_id,
-            'service_offered_id': service_offered_id
+            'service_offered_id': service_offered_id,
+            'assigned_service_id': assigned_service_id,
+            'report': report if status == 'serviced-closed' else None  
         })
 
     return jsonify(result)
+
 
 @app.route('/get_cart_items/<int:customer_id>', methods=['GET'])
 def get_cart_items(customer_id):
@@ -926,6 +1021,7 @@ def get_cart_items(customer_id):
         return jsonify({'message': 'No items found in the cart for this customer.'}), 404
 
     # Prepare the response data
+    allCars =[]
     items_data = []
     for cart_item in cart_items:
         item_data = {
@@ -939,8 +1035,17 @@ def get_cart_items(customer_id):
             'service_package_id' : cart_item.service_package_id
         }
         items_data.append(item_data)
+        if cart_item.car_id  and (cart_item.service_package_id is None and cart_item.service_offered_id is None and cart_item.service_request_id is None):
+            carsData={
+                'car_id': cart_item.car_id,
+                'car_name' : cart_item.item_name,
+                'car_price': cart_item.item_price
+            }
+            allCars.append(carsData)    
+    #print(allCars)  
+        
+    return jsonify({'cart_items': items_data, 'allCars':allCars}), 200
 
-    return jsonify({'cart_items': items_data}), 200
 
 #use the carid to delete the perks and car if it is a car else use cartId
 @app.route('/delete_cart_item/<int:cartId>/<int:car_id>/<int:service_package_id>/<int:customer_id>', methods=['DELETE'])
@@ -967,26 +1072,42 @@ def delete_cart(cartId,car_id,service_package_id,customer_id):
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     data = request.get_json()
+    print(data)
     # Extract data from the JSON payload
+    '''
     customer_id = data.get('customer_id')
     car_id = data.get('car_id')
     item_price = data.get('item_price')
     item_name = data.get('item_name')
     item_image = data.get('item_image')
+    item_accessoire_id = data.get('accessoire_id')
     item_service_offered_id = data.get('service_offered_id')
-
+    item_service_package_id = data.get('service_package_id')
+    item_service_request_id = data.get('service_request_id')
+    '''
     try:
+        customer_id = data.get('customer_id')
+        car_id = data.get('car_id')
+        item_price = data.get('item_price')
+        item_name = data.get('item_name')
+        item_image = data.get('item_image')
+        item_accessoire_id = data.get('accessoire_id')
+        item_service_offered_id = data.get('service_offered_id')
+        item_service_package_id = data.get('service_package_id')
+        item_service_request_id = data.get('service_request_id')
         # Conditionally assign service_offered_id based on its presence in the JSON payload
         if item_service_offered_id is not None:
+            item_image = ServicesOffered.query.filter_by(services_offered_id=item_service_offered_id).first().image
             new_cart_item = Cart(
                 customer_id=customer_id,
                 item_price=item_price,
                 item_name=item_name,
                 item_image=item_image,
                 car_id=car_id,
-                accessoire_id=None,  
+                accessoire_id=item_accessoire_id,  
                 service_offered_id=item_service_offered_id,  
-                service_package_id=None  
+                service_package_id=item_service_package_id,
+                service_request_id=item_service_request_id,
             )
         else:
             #return 409 if a car is present in the cart
@@ -1002,7 +1123,8 @@ def add_to_cart():
                 car_id=car_id,
                 accessoire_id=None,  
                 service_offered_id=None,  
-                service_package_id=None  
+                service_package_id=None,  
+                service_request_id=None
             )
 
         db.session.add(new_cart_item)
@@ -1021,6 +1143,7 @@ def add_car(customer_id):
     car_id = data.get('car_id')
     make = data.get('make')
     model = data.get('model')
+    year = data.get('year')
 
     # Check if the car_id already exists in the cars table
     existing_car = Cars.query.filter_by(car_id=car_id).first()
@@ -1031,7 +1154,7 @@ def add_car(customer_id):
     if not customer:
         return jsonify({'error': 'Customer not found'}), 404
 
-    new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model) # add year='' or make it so its null
+    new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model, year=year)
 
     db.session.add(new_car)
     db.session.commit()
@@ -1060,7 +1183,7 @@ def add_cars_to_site():
         image4 = car_data.get('image4')
         
         car = Cars(manager_id=manager_id, make=make, model=model, year=year, color=color, engine=engine, transmission=transmission, price=price,
-                   image0=image0, image1=image1, image2=image2, image3=image3, image4=image4)
+                   image0=image0, image1=image1, image2=image2, image3=image3, image4=image4, available=1)
         
         db.session.add(car)
 
@@ -1077,7 +1200,8 @@ def get_cars(customer_id):
         cars_list.append({
             'car_id': car.car_id,
             'make': car.make,
-            'model': car.model
+            'model': car.model,
+            'year': car.year
         })
 
     return jsonify({'cars': cars_list})
@@ -1160,12 +1284,12 @@ def cars_details():
             'image': car.image0
         } for car in all_cars]
 
-        # get the total number of cars to display
-        total_cars = Cars.query.count()
+        # get the total number of cars to display if they are available
+        total_cars = Cars.query.filter(Cars.available==1).count()
 
         # get the number of pages
         total_pages = math.ceil(total_cars / per_page)
-
+        
         return jsonify({'cars': cars, 'total_pages': total_pages, 'current_page': page}), 200
 
 #fetch the selected car infos
@@ -1406,7 +1530,8 @@ def add_appointment():
 @app.route('/show_test_drive_appointments', methods=['GET', 'PATCH'])
 def get_appointments():
     appointments = db.session.query(TestDriveAppointment).\
-        join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).all()
+        join(Customer, TestDriveAppointment.customer_id == Customer.customer_id).\
+        filter(TestDriveAppointment.status == 'pending').all()
 
     appointment_list = []
     for appointment in appointments:
@@ -1627,7 +1752,7 @@ def view_customer_service_details(assigned_service_id):
                 'service_name': row[6],
                 'service_price': row[7],
                 'service_description': row[8],
-                'report': row[9] if row[9] is not None else "No report yet"  # Use an empty string if report is None
+                'report': row[9] if row[9] is not None else "No report yet"  
             }
             ticket_details.append(ticket_detail)
 
@@ -1777,12 +1902,11 @@ def receiveApplication():
     try:
         data = request.get_json()
         print(data)
-        sendApplication(data)
         response = sendApplication(data)
+        print(response)
+        return jsonify(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    print(response)
-    return response
 def sendApplication(data):
     url = 'http://localhost:5001/receive_finance_application'
     try:
@@ -1791,6 +1915,12 @@ def sendApplication(data):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     return response.json()
+
+
+
+
+
+
 
 @app.route('/get-customer-bank_info/<int:customer_id>', methods=['GET'])
 def get_customer_bank_info(customer_id):
@@ -1804,7 +1934,8 @@ def get_customer_bank_info(customer_id):
                 bank_info = {
                     'bank_name': bank_detail.bank_name,
                     'account_number': bank_detail.account_number,
-                    'routing_number': bank_detail.routing_number
+                    'routing_number': bank_detail.routing_number,
+                    'credit_score': bank_detail.credit_score
                 }
                 bank_info_list.append(bank_info)
             return jsonify(bank_info_list), 200
@@ -1814,67 +1945,204 @@ def get_customer_bank_info(customer_id):
         return jsonify({'error': 'Customer not found'}), 404
     
 @app.route('/add-customer-bank_info/<int:customer_id>', methods=['POST'])
-def add_or_update_customer_bank_info(customer_id):
-    customer = Customer.query.get(customer_id)
-    if customer:
-        bank_name = request.json.get('bank_name')
-        account_number = str(request.json.get('account_number'))
-        routing_number = str(request.json.get('routing_number'))
-
-        if not all([bank_name, account_number, routing_number]):
-            return jsonify({'error': 'Missing bank information'}), 400
-
-        # Validate account number and routing number format (you may need more sophisticated validation)
-        if not (account_number.isdigit() and routing_number.isdigit()):
-            return jsonify({'error': 'Invalid account or routing number format'}), 400
-
-        existing_bank_details = CustomersBankDetails.query.filter_by(customer_id=customer_id).first()
-
-        if existing_bank_details:
-            existing_bank_details.bank_name = bank_name
-            existing_bank_details.account_number = account_number
-            existing_bank_details.routing_number = routing_number
-        else:
-            new_bank_details = CustomersBankDetails(
-                bank_name=bank_name,
-                account_number=account_number,
-                routing_number=routing_number,
-                customer_id=customer_id
-            )
-            db.session.add(new_bank_details)
-
-        db.session.commit()
-
-        return jsonify({'message': 'Bank details added/updated successfully'}), 201
-    else:
-        return jsonify({'error': 'Customer not found'}), 404
-
-@app.route('/saveFinanceApplication', methods=['POST'])
-def save_application():
+def receive_customerBankInfo(customer_id):
     try:
         data = request.get_json()
         print(data)
+        response = send_customerBankInfo(data,customer_id)
+        print(response)
+        return jsonify(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    return jsonify(data), 201
+def send_customerBankInfo(data, customer_id):
+    url = f'http://localhost:5001/add-customerBankInfo/{customer_id}'
+    try:
+        response = requests.post(url, json=data)
+        print(response)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return response.json()
+
+
+
+@app.route('/saveFinanceApplication', methods=['POST'])
+def save_application():
+    data = request.get_json()
+    print(data)
+
+    new_contract = FinanceContract(
+        first_name=data.get('first_name'),
+        last_name=data.get('last_name'),
+        customer_id=data.get('customer_id'),
+        email=data.get('email'),
+        address=data.get('address'),
+        phone_number=data.get('phone_number'),
+        car_year=data.get('car_year'),
+        car_make=data.get('car_make'),
+        car_model=data.get('car_model'),
+        car_price=data.get('car_price'),
+        credit_score=data.get('credit_score'),
+        finance_decision=data.get('finance_decision'),
+        loan_term=data.get('loan_term'),
+        down_payment=data.get('down_payment'),
+        loan_apr=data.get('loan_apr'),
+        loan_monthly_payment=data.get('loan_monthly_payment')
+    )
+
+    db.session.add(new_contract)
+
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'Contract/Report Saved Successfully!!'}), 201
 
 @app.route('/preCheckout', methods=['POST'])
 def preCheckout():
+    #try:
+    data = request.get_json()['customer_id']
+    cart_items = Cart.query.filter_by(customer_id=data).all()
+    print(data)
     try:
-        data = request.get_json()['customer_id']
-        cart_items = Cart.query.filter_by(customer_id=data).all()
-        print(cart_items)
         for cart_item in cart_items:
-            print(cart_item.item_price)
-            new_item_sold = ItemSold(
-                customer_id=data,  # Replace with actual customer ID
-                item_type="Car",  # Replace with actual item type
-                date=datetime.now(),  # Uses current UTC time
-                price=cart_item.item_price,  # Replace with actual price
-                item_id=cart_item.car_id,  # Replace with actual item ID
-                method_of_payment="Bank Account",  # Optional, replace with payment method (or None)
-            )
-            db.session.add(new_item_sold)
+            print(cart_item.serialize())
+            if cart_item.item_name == "Oil Change":
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Service Appointment",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.car_id,
+                    method_of_payment="Bank Account",
+                )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
+                db.session.add(new_item_sold)
+            elif cart_item.item_name == "Tire Rotation":
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Service Appointment",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.car_id,
+                    method_of_payment="Bank Account",
+                )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
+                db.session.add(new_item_sold)
+            elif cart_item.item_name == "Brake Inspection":
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Service Appointment",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.car_id,
+                    method_of_payment="Bank Account",
+                )
+                
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
+                db.session.add(new_item_sold)  
+            elif cart_item.item_name == "Coolant Flush":
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Service Appointment",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.car_id,
+                    method_of_payment="Bank Account",
+                )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
+                db.session.add(new_item_sold)  
+            elif cart_item.item_name == "Air Filter":
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Service Appointment",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.car_id,
+                    method_of_payment="Bank Account",
+                )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
+                db.session.add(new_item_sold)
+            elif cart_item.item_name == "Transmission Fluid":
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Service Appointment",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.car_id,
+                    method_of_payment="Bank Account",
+                )
+
+                service_request = ServicesRequest.query.get(cart_item.service_request_id)
+                service_request.status = "accepted"
+
+                db.session.add(new_item_sold)
+            elif cart_item.service_package_id is not None:
+                print(cart_item.service_package_id)
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Service Package",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.car_id,
+                    method_of_payment="Bank Account",
+                )
+                db.session.add(new_item_sold)
+            elif cart_item.accessoire_id is not None:
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Accessory",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.accessoire_id,
+                    method_of_payment="Bank Account",
+                )
+                db.session.add(new_item_sold)
+            else:
+                new_item_sold = ItemSold(
+                    customer_id=data,
+                    item_type="Car",
+                    name=cart_item.item_name,
+                    date=datetime.now(),
+                    price=cart_item.item_price,
+                    item_id=cart_item.car_id,
+                    method_of_payment="Bank Account",
+                )
+                target_car = Cars.query.filter_by(car_id=cart_item.car_id).first()
+                print(target_car)
+                new_own_car = OwnCar(
+                    car_id = cart_item.car_id,
+                    customer_id = data,
+                    make = target_car.make,
+                    model = target_car.model,
+                    year = target_car.year,
+                )
+                car = Cars.query.get(cart_item.car_id)
+                car.available = 0
+                db.session.add(new_item_sold)
+                db.session.add(new_own_car)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     db.session.commit()
@@ -1892,6 +2160,94 @@ def checkout(customer_id):
     db.session.commit()
     return jsonify({'mesage': 'successful checkout'}), 200
 
+@app.route('/fetchFinance', methods=['POST'])
+def finance():
+    try:
+        finance_items = FinanceContract.query.all()
+    except Exception as e:
+        print("error", str(e))
+        return jsonify({'error' : str(e)}), 500
+    finances =[ {"finance_id" : item.id,"customer_id" : item.customer_id, "first_name" :item.first_name, "last_name" :item.last_name,
+                 "car_year":item.car_year, "car_make":item.car_make, "car_model" : item.car_model,"car_price" :item.car_price,
+                 "credit_score":item.credit_score,"finance_decision":item.finance_decision, "loan_term":item.loan_term, "loan_apr":item.loan_apr,
+                 "monthly_payment": item.loan_monthly_payment} 
+               for item in finance_items]
+    return jsonify({"finances" : finances}), 200
+
+
+@app.route('/getMonthlySales', methods=['GET'])
+def getMonthlySales():
+    today = datetime.now(timezone.utc)
+    firstOfTheMonth = today.replace(day=1)
+    lastOfTheMonth = firstOfTheMonth + timedelta(days = (calendar.monthrange(today.year, today.month)[1] - 1))
+
+    currentMonthSales = ItemSold.query.filter(
+        ItemSold.date >= firstOfTheMonth,
+        ItemSold.date <= lastOfTheMonth
+    ).all()
+
+    return jsonify([item.serialize() for item in currentMonthSales])
+
+
+
+# Endpoint to get finance contract info by customer ID
+@app.route('/view_finance_contract/<int:customer_id>', methods=['GET'])
+def get_finance_contract(customer_id):
+    contracts = FinanceContract.query.filter_by(customer_id=customer_id).all()
+    if contracts:
+        contract_list = []
+        for contract in contracts:
+            contract_info = {
+                'id': contract.id,
+                'first_name': contract.first_name,
+                'last_name': contract.last_name,
+                'customer_id': contract.customer_id,
+                'email': contract.email,
+                'address': contract.address,
+                'phone_number': contract.phone_number,
+                'car_year': contract.car_year,
+                'car_make': contract.car_make,
+                'car_model': contract.car_model,
+                'car_price': str(contract.car_price), 
+                'credit_score': contract.credit_score,
+                'finance_decision': contract.finance_decision,
+                'loan_term': contract.loan_term,
+                'loan_apr': str(contract.loan_apr), 
+                'loan_monthly_payment': str(contract.loan_monthly_payment)  
+            }
+            contract_list.append(contract_info)
+            print(contract_list)
+        return jsonify(contract_list)
+    else:
+        return jsonify({'error': 'Contracts not found'}), 404
+
+#Mail server
+# Mail server
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_DEFAULT_SENDER'] = 'velocitymotors35@gmail.com'
+app.config['MAIL_USERNAME'] = 'velocitymotors35@gmail.com'
+app.config['MAIL_PASSWORD'] = 'obcq mytf drsk nxmg'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
+
+@app.route('/emailContract', methods=['POST'])
+def email_contract():
+    pdf_file = request.files['pdf']
+    user_email = request.args.get('userEmail')
+    msg = Message("Purchase agreement for car(s)", recipients=[user_email])
+    msg.body = """Thank you for choosing us for your purchase. We are pleased to inform you that your contract is attached for your reference. If you have any questions or need further assistance, please don't hesitate to contact us."""
+    msg.attach('contract.pdf', 'application/pdf', pdf_file.read())
+    try:
+        mail.send(msg)
+        return jsonify("We emailed you your contract"), 200
+    except Exception as e:
+        print("Error:", str(e))
+        return str(e), 500
+
+
+
 if __name__ == "__main__":
     app.run(debug = True, host='localhost', port='5000')
-
