@@ -374,7 +374,7 @@ def add_customer():
         email=data['email'],
         phone=data['phone'],
         Address=data.get('Address', None),
-        password=data['password'],
+        password=str(hash(data['password'])),
         usernames=data['usernames'],
         social_security=data['social_security']
     )
@@ -402,7 +402,7 @@ def add_technician():
         email=data['email'],
         usernames=data['username'], 
         phone=data['phone'],
-        password=data['password'],
+        password=str(hash(data['password'])),
         manager_id=manager_id
     )
     db.session.add(technician)
@@ -420,7 +420,7 @@ def add_manager():
             email=data['email'],
             usernames=data['username'],
             phone=data['phone'],
-            password=data['password'],
+            password=str(hash(data['password'])),
             admin_id=data['admin_id'] 
         )
     else:
@@ -429,7 +429,7 @@ def add_manager():
             lastName=data['last_name'],
             email=data['email'],
             phone=data['phone'],
-            password=data['password']
+            password=str(hash(data['password']))
         )
     db.session.add(manager)
     db.session.commit()
@@ -442,7 +442,7 @@ def login():
         return jsonify({'error': 'Username and password are required'}), 400
     
     usernames = data['usernames']
-    password = data['password']
+    password = str(hash(data['password']))
     
     customer = Customer.query.filter_by(usernames=usernames, password=password).first()
     if customer:
@@ -468,7 +468,7 @@ def login_technicians():
 
 
     usernames = data['usernames']
-    password = data['password']
+    password = str(hash(data['password']))
     technician = Technicians.query.filter_by(usernames=usernames, password=password).first()
     if technician:
 
@@ -654,7 +654,7 @@ def login_managers():
 
 
     usernames = data['usernames']
-    password = data['password']
+    password = str(hash(data['password']))
 
     manager = Managers.query.filter_by(usernames=usernames, password=password).first()
     if manager :
@@ -679,7 +679,7 @@ def login_admin():
 
 
     usernames = data['usernames']
-    password = data['password']
+    password = str(hash(data['password']))
 
     admin = Admin.query.filter_by(usernames=usernames, password=password).first()
     if admin:
@@ -708,7 +708,7 @@ def edit_customer(customer_id):
             customer.email = edited_data.get('email', customer.email)
             customer.phone = edited_data.get('phone', customer.phone)
             customer.Address = edited_data.get('Address', customer.Address)
-            customer.password = edited_data.get('password', customer.password)
+            customer.password = str(hash(edited_data.get('password', customer.password)))
             customer.usernames= edited_data.get('usernames', customer.usernames)
 
             db.session.commit()
