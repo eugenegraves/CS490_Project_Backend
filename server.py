@@ -707,7 +707,7 @@ def edit_customer(customer_id):
             customer.email = edited_data.get('email', customer.email)
             customer.phone = edited_data.get('phone', customer.phone)
             customer.Address = edited_data.get('Address', customer.Address)
-            customer.password = str(hash(edited_data.get('password', customer.password)))
+            customer.password = hashlib.sha256(edited_data.get('password', customer.password).encode()).hexdigest()
             customer.usernames= edited_data.get('usernames', customer.usernames)
 
             db.session.commit()
