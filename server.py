@@ -15,8 +15,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import select
 from sqlalchemy import CheckConstraint
 from flask_mail import Mail, Message
-
-
+import hashlib
 from flask_swagger_ui import get_swaggerui_blueprint
 
 
@@ -46,7 +45,8 @@ swaggerui_blueprint = get_swaggerui_blueprint(
     # }
 )
 
-app.register_blueprint(swaggerui_blueprint)
+#app.register_blueprint(swaggerui_blueprint)
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL, name='swagger_ui_custom')
 
 
 
@@ -54,8 +54,8 @@ app.register_blueprint(swaggerui_blueprint)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 db = SQLAlchemy(app)
 CORS(app)
@@ -375,7 +375,7 @@ def add_customer():
         email=data['email'],
         phone=data['phone'],
         Address=data.get('Address', None),
-        password=str(hash(data['password'])),
+        password=hashlib.sha256(data['password'].encode()).hexdigest(),
         usernames=data['usernames'],
         social_security=data['social_security']
     )
@@ -403,7 +403,7 @@ def add_technician():
         email=data['email'],
         usernames=data['username'], 
         phone=data['phone'],
-        password=str(hash(data['password'])),
+        password=hashlib.sha256(data['password'].encode()).hexdigest(),
         manager_id=manager_id
     )
     db.session.add(technician)
@@ -421,16 +421,18 @@ def add_manager():
             email=data['email'],
             usernames=data['username'],
             phone=data['phone'],
-            password=str(hash(data['password'])),
+            password=hashlib.sha256(data['password'].encode()).hexdigest(),
             admin_id=data['admin_id'] 
         )
     else:
         manager=Managers(
-            firstName=data['first_name'],
-            lastName=data['last_name'],
+            #firstName=data['first_name'],
+            #lastName=data['last_name'],
+            first_name=data['first_name'],
+            last_name=data['last_name'],
             email=data['email'],
             phone=data['phone'],
-            password=str(hash(data['password']))
+            password=hashlib.sha256(data['password'].encode()).hexdigest(),
         )
     db.session.add(manager)
     db.session.commit()
@@ -443,7 +445,7 @@ def login():
         return jsonify({'error': 'Username and password are required'}), 400
     
     usernames = data['usernames']
-    password = str(hash(data['password']))
+    password = hashlib.sha256(data['password'].encode()).hexdigest()
     
     customer = Customer.query.filter_by(usernames=usernames, password=password).first()
     if customer:
@@ -469,7 +471,7 @@ def login_technicians():
 
 
     usernames = data['usernames']
-    password = str(hash(data['password']))
+    password = hashlib.sha256(data['password'].encode()).hexdigest()
     technician = Technicians.query.filter_by(usernames=usernames, password=password).first()
     if technician:
 
@@ -655,7 +657,7 @@ def login_managers():
 
 
     usernames = data['usernames']
-    password = str(hash(data['password']))
+    password = hashlib.sha256(data['password'].encode()).hexdigest()
 
     manager = Managers.query.filter_by(usernames=usernames, password=password).first()
     if manager :
@@ -680,7 +682,7 @@ def login_admin():
 
 
     usernames = data['usernames']
-    password = str(hash(data['password']))
+    password = hashlib.sha256(data['password'].encode()).hexdigest()
 
     admin = Admin.query.filter_by(usernames=usernames, password=password).first()
     if admin:
@@ -709,7 +711,7 @@ def edit_customer(customer_id):
             customer.email = edited_data.get('email', customer.email)
             customer.phone = edited_data.get('phone', customer.phone)
             customer.Address = edited_data.get('Address', customer.Address)
-            customer.password = str(hash(edited_data.get('password', customer.password)))
+            customer.password = hashlib.sha256(edited_data.get('password', customer.password).encode()).hexdigest()
             customer.usernames= edited_data.get('usernames', customer.usernames)
 
             db.session.commit()
@@ -1862,7 +1864,7 @@ def deleteCarManager():
     try:
         carID = request.get_json()['carID']  # Use MultiDict for validation
         print("this is the received carID: ", carID)
-        query = text("DELETE FROM cars_dealershipx.cars WHERE car_id = :carID")
+        query = text("update cars_dealershipx.cars set available = 0 where car_id = :carID")
         result = db.session.execute(query, {'carID': carID})
         # Commit the transaction
         db.session.commit()
