@@ -68,14 +68,15 @@ swaggerui_blueprint = get_swaggerui_blueprint(
     # }
 )
 
-app.register_blueprint(swaggerui_blueprint)
+#app.register_blueprint(swaggerui_blueprint)
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL, name='swagger_ui_custom')
 
 
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
 ##app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
@@ -447,8 +448,10 @@ def add_manager():
         )
     else:
         manager=Managers(
-            firstName=data['first_name'],
-            lastName=data['last_name'],
+            #firstName=data['first_name'],
+            #lastName=data['last_name'],
+            first_name=data['first_name'],
+            last_name=data['last_name'],
             email=data['email'],
             phone=data['phone'],
             password=data['password']
