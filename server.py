@@ -15,36 +15,13 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import select
 from sqlalchemy import CheckConstraint
 from flask_mail import Mail, Message
-
-
+import hashlib
 from flask_swagger_ui import get_swaggerui_blueprint
 
 
 ''' Connection '''
 
 app = Flask(__name__)
-
-SWAGGER_URL = '/api/docs'  # URL for exposing Swagger UI (without trailing '/')
-API_URL = '/static/swagger.json'  # Our API url (can of course be a local resource)
-
-# Call factory function to create our blueprint
-swaggerui_blueprint = get_swaggerui_blueprint(
-    SWAGGER_URL,  # Swagger UI static files will be mapped to '{SWAGGER_URL}/dist/'
-    API_URL,
-    config={  # Swagger UI config overrides
-        'app_name': "Test application"
-    },
-    # oauth_config={  # OAuth config. See https://github.com/swagger-api/swagger-ui#oauth2-configuration .
-    #    'clientId': "your-client-id",
-    #    'clientSecret': "your-client-secret-if-required",
-    #    'realm': "your-realms",
-    #    'appName': "your-app-name",
-    #    'scopeSeparator': " ",
-    #    'additionalQueryStringParams': {'test': "hello"}
-    # }
-)
-
-app.register_blueprint(swaggerui_blueprint)
 
 
 #hello
@@ -76,9 +53,9 @@ app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL, name='swagge
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Westwood-18@localhost/cars_dealershipx' #Abdullah Connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-##app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 db = SQLAlchemy(app)
 CORS(app)
@@ -397,7 +374,7 @@ def add_customer():
         email=data['email'],
         phone=data['phone'],
         Address=data.get('Address', None),
-        password=data['password'],
+        password=hashlib.sha256(data['password'].encode()).hexdigest(),
         usernames=data['usernames'],
         social_security=data['social_security']
     )
@@ -425,7 +402,7 @@ def add_technician():
         email=data['email'],
         usernames=data['username'], 
         phone=data['phone'],
-        password=data['password'],
+        password=hashlib.sha256(data['password'].encode()).hexdigest(),
         manager_id=manager_id
     )
     db.session.add(technician)
@@ -443,7 +420,7 @@ def add_manager():
             email=data['email'],
             usernames=data['username'],
             phone=data['phone'],
-            password=data['password'],
+            password=hashlib.sha256(data['password'].encode()).hexdigest(),
             admin_id=data['admin_id'] 
         )
     else:
@@ -454,7 +431,7 @@ def add_manager():
             last_name=data['last_name'],
             email=data['email'],
             phone=data['phone'],
-            password=data['password']
+            password=hashlib.sha256(data['password'].encode()).hexdigest(),
         )
     db.session.add(manager)
     db.session.commit()
@@ -467,7 +444,7 @@ def login():
         return jsonify({'error': 'Username and password are required'}), 400
     
     usernames = data['usernames']
-    password = data['password']
+    password = hashlib.sha256(data['password'].encode()).hexdigest()
     
     customer = Customer.query.filter_by(usernames=usernames, password=password).first()
     if customer:
@@ -493,7 +470,7 @@ def login_technicians():
 
 
     usernames = data['usernames']
-    password = data['password']
+    password = hashlib.sha256(data['password'].encode()).hexdigest()
     technician = Technicians.query.filter_by(usernames=usernames, password=password).first()
     if technician:
 
@@ -679,7 +656,7 @@ def login_managers():
 
 
     usernames = data['usernames']
-    password = data['password']
+    password = hashlib.sha256(data['password'].encode()).hexdigest()
 
     manager = Managers.query.filter_by(usernames=usernames, password=password).first()
     if manager :
@@ -704,7 +681,7 @@ def login_admin():
 
 
     usernames = data['usernames']
-    password = data['password']
+    password = hashlib.sha256(data['password'].encode()).hexdigest()
 
     admin = Admin.query.filter_by(usernames=usernames, password=password).first()
     if admin:
@@ -733,7 +710,7 @@ def edit_customer(customer_id):
             customer.email = edited_data.get('email', customer.email)
             customer.phone = edited_data.get('phone', customer.phone)
             customer.Address = edited_data.get('Address', customer.Address)
-            customer.password = edited_data.get('password', customer.password)
+            customer.password = hashlib.sha256(edited_data.get('password', customer.password).encode()).hexdigest()
             customer.usernames= edited_data.get('usernames', customer.usernames)
 
             db.session.commit()
@@ -2213,6 +2190,7 @@ def get_finance_contract(customer_id):
                 'car_model': contract.car_model,
                 'car_price': str(contract.car_price), 
                 'credit_score': contract.credit_score,
+                'down_payment': contract.down_payment,
                 'finance_decision': contract.finance_decision,
                 'loan_term': contract.loan_term,
                 'loan_apr': str(contract.loan_apr), 
