@@ -17,3 +17,4 @@ Werkzeug==3.0.1
 pytest
 requests
 flask_mail
+flask_swagger_ui
