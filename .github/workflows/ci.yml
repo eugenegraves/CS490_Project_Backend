@@ -16,7 +16,7 @@ jobs:
           python-version: 3.9
 
       - name: Install dependencies
-        run: pip3 install -r requirements.txt
+        run: pip3 install -r requirement.txt
 
       - name: Run tests
         run: pytest test  # Replace 'tests.py' with your test file name(s)
