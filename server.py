@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from flask_cors import CORS
 from flask_mysqldb import MySQL
 from sqlalchemy import text, func, and_, update, case
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 import calendar
 from sqlalchemy.exc import IntegrityError
 import math
@@ -54,8 +54,8 @@ app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL, name='swagge
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 db = SQLAlchemy(app)
 CORS(app)
@@ -355,6 +355,7 @@ class FinanceContract(db.Model):
     loan_apr = db.Column(db.DECIMAL(5, 2), nullable=False)
     loan_monthly_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
     down_payment = db.Column(db.DECIMAL(10, 2), nullable=False)
+    contract_date = db.Column(db.Date, nullable=False)
 
 class ServiceReport(db.Model):
     __tablename__ = 'service_report'
@@ -1966,7 +1967,8 @@ def save_application():
         loan_term=data.get('loan_term'),
         down_payment=data.get('down_payment'),
         loan_apr=data.get('loan_apr'),
-        loan_monthly_payment=data.get('loan_monthly_payment')
+        loan_monthly_payment=data.get('loan_monthly_payment'),
+        contract_date=date.today().strftime("%Y-%m-%d")
     )
 
     db.session.add(new_contract)
@@ -2194,7 +2196,8 @@ def get_finance_contract(customer_id):
                 'finance_decision': contract.finance_decision,
                 'loan_term': contract.loan_term,
                 'loan_apr': str(contract.loan_apr), 
-                'loan_monthly_payment': str(contract.loan_monthly_payment)  
+                'loan_monthly_payment': str(contract.loan_monthly_payment),
+                'contract_date': contract.contract_date  
             }
             contract_list.append(contract_info)
             print(contract_list)

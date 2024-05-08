@@ -1,0 +1,22 @@
+name: CI - Backend Build and Test
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Python 3.9
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: pip3 install -r requirement.txt
+
+      - name: Run tests
+        run: pytest test  # Replace 'tests.py' with your test file name(s)
