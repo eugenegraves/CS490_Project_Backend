@@ -1,33 +1,64 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from server import app, db
+from unittest.mock import patch, MagicMock
+from flask import json
+from server import app, db  # Ensure this import includes your Flask app and SQLAlchemy object
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        #populate_test_data()
-        yield app.test_client()  # Yielding testing client for your application
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
+@patch('server.db.session.commit')
+@patch('server.db.session.add')
+@patch('server.Cars.query')
+@patch('server.Customer.query')
+def test_add_car_success(mock_customer_query, mock_cars_query, mock_add, mock_commit, client):
+    mock_customer_query.get.return_value = MagicMock(customer_id=1)  # Assume the customer exists
+    mock_cars_query.filter_by.return_value.first.return_value = None  # Assume the car ID does not exist
 
-def test_add_car_success(client):
-    response = client.post('/add_own_car/1', json={'car_id': '125','make': 'Toyota', 'model': 'Corolla', 'year': 2021})
+    response = client.post('/add_own_car/1', json={
+        'car_id': '123',
+        'make': 'Toyota',
+        'model': 'Corolla',
+        'year': '2020'
+    })
+
     assert response.status_code == 201
-    assert 'Car added successfully' in response.get_json()['message']
+    assert json.loads(response.data) == {'message': 'Car added successfully'}
 
-# def test_add_car_missing_data(client):
-#     response = client.post('/add_own_car/1', json={'car_id': '124', 'make': 'Toyota'})
-#     assert response.status_code == 201
-#     assert 'Missing required car details' in response.get_json()['error']
+@patch('server.Cars.query')
+@patch('server.Customer.query')
+def test_add_car_failure_car_exists(mock_customer_query, mock_cars_query, client):
+    mock_customer_query.get.return_value = MagicMock(customer_id=1)
+    mock_cars_query.filter_by.return_value.first.return_value = MagicMock(car_id='123')  # Car exists
 
-def test_add_car_customer_not_found(client):
-    response = client.post('/add_own_car/999', json={'make': 'Toyota', 'model': 'Corolla', 'year': 2021})
+    response = client.post('/add_own_car/1', json={
+        'car_id': '123',
+        'make': 'Toyota',
+        'model': 'Corolla',
+        'year': '2020'
+    })
+
+    assert response.status_code == 400
+    assert json.loads(response.data) == {'error': 'Car ID already exists'}
+
+@patch('server.Cars.query')
+@patch('server.Customer.query')
+def test_add_car_failure_customer_not_found(mock_customer_query, mock_cars_query, client):
+    mock_customer_query.get.return_value = None  # Customer does not exist
+
+    response = client.post('/add_own_car/2', json={
+        'car_id': '124',
+        'make': 'Honda',
+        'model': 'Civic',
+        'year': '2019'
+    })
+
     assert response.status_code == 404
-    assert 'Customer not found' in response.get_json()['error']
+    assert json.loads(response.data) == {'error': 'Customer not found'}

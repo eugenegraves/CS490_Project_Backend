@@ -54,8 +54,8 @@ app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL, name='swagge
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:great-days321@localhost/cars_dealershipx' #Dylan Connection 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:A!19lopej135@localhost/cars_dealershipx' # joan connection
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:12340@192.168.56.1/cars_dealershipx'# Ismael connection
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:*_-wowza-shaw1289@localhost/cars_dealershipx' #hamza connection
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:42Drm400$!@localhost/cars_dealershipx'
 
 db = SQLAlchemy(app)
 CORS(app)
@@ -410,27 +410,25 @@ def add_technician():
     db.session.commit()
     return jsonify({'message': 'Technician added successfully'}), 201
 
-# adds a manager to the database
 @app.route("/add_manager", methods=['POST'])
 def add_manager():
-    data=request.get_json()
+    data = request.get_json()
     if 'admin_id' in data:
-        manager=Managers(
-            first_name=data['firstName'],
-            last_name=data['lastName'],
+        manager = Managers(
+            first_name=data['first_name'],
+            last_name=data['last_name'],
             email=data['email'],
-            usernames=data['username'],
+            usernames=data['username'],  # Corrected key name
             phone=data['phone'],
             password=hashlib.sha256(data['password'].encode()).hexdigest(),
             admin_id=data['admin_id'] 
         )
     else:
-        manager=Managers(
-            #firstName=data['first_name'],
-            #lastName=data['last_name'],
+        manager = Managers(
             first_name=data['first_name'],
             last_name=data['last_name'],
             email=data['email'],
+            usernames=data['username'],  # Corrected key name
             phone=data['phone'],
             password=hashlib.sha256(data['password'].encode()).hexdigest(),
         )
@@ -1120,6 +1118,10 @@ def add_to_cart():
 # Create a route to add a new car for a customer
 @app.route('/add_own_car/<int:customer_id>', methods=['POST'])
 def add_car(customer_id):
+    customer = Customer.query.get(customer_id)
+    if not customer:
+        return jsonify({'error': 'Customer not found'}), 404
+
     data = request.get_json()
     car_id = data.get('car_id')
     make = data.get('make')
@@ -1130,10 +1132,6 @@ def add_car(customer_id):
     existing_car = Cars.query.filter_by(car_id=car_id).first()
     if existing_car:
         return jsonify({'error': 'Car ID already exists'}), 400
-
-    customer = Customer.query.get(customer_id)
-    if not customer:
-        return jsonify({'error': 'Customer not found'}), 404
 
     new_car = OwnCar(car_id=car_id, customer_id=customer_id, make=make, model=model, year=year)
 
@@ -1146,30 +1144,35 @@ def add_car(customer_id):
 @app.route('/add_cars_to_site', methods=['POST'])
 def add_cars_to_site():
     data = request.get_json()
-    cars_data = data.get('cars')     # converts to proper format in order for backend to read the info correctly
+    cars_data = data.get('cars')
+
+    if not cars_data:
+        return jsonify({'error': 'No car data provided'}), 400
 
     for car_data in cars_data:
-        manager_id = car_data.get('manager_id')
-        make = car_data.get('make')
-        model = car_data.get('model')
-        year = car_data.get('year')
-        color = car_data.get('color')
-        engine = car_data.get('engine')
-        transmission = car_data.get('transmission')
-        price = car_data.get('price')
-        image0 = car_data.get('image0')
-        image1 = car_data.get('image1')
-        image2 = car_data.get('image2')
-        image3 = car_data.get('image3')
-        image4 = car_data.get('image4')
-        
-        car = Cars(manager_id=manager_id, make=make, model=model, year=year, color=color, engine=engine, transmission=transmission, price=price,
-                   image0=image0, image1=image1, image2=image2, image3=image3, image4=image4, available=1)
-        
+        required_fields = ['manager_id', 'make', 'model', 'year', 'color', 'engine', 'transmission', 'price', 'image0']
+        if not all(field in car_data for field in required_fields):
+            return jsonify({'error': 'Missing required car data fields'}), 400
+
+        car = Cars(
+            manager_id=car_data.get('manager_id'),
+            make=car_data.get('make'),
+            model=car_data.get('model'),
+            year=car_data.get('year'),
+            color=car_data.get('color'),
+            engine=car_data.get('engine'),
+            transmission=car_data.get('transmission'),
+            price=car_data.get('price'),
+            image0=car_data.get('image0'),
+            image1=car_data.get('image1', ''),
+            image2=car_data.get('image2', ''),
+            image3=car_data.get('image3', ''),
+            image4=car_data.get('image4', ''),
+            available=1
+        )
         db.session.add(car)
 
     db.session.commit()
-    
     return jsonify({'message': 'Cars added successfully to the dealership'}), 201
 
 @app.route('/own_cars/<int:customer_id>', methods=['GET'])
@@ -1278,21 +1281,24 @@ def cars_details():
 def getCarInfos():
     car_id = request.args.get('car_id')
     carInfos = Cars.query.filter_by(car_id=car_id).first()
+    if not carInfos:
+        return jsonify({'error': 'Car not found'}), 404
+
     carInfosDict = {
-    'car_id': carInfos.car_id,
-    'make': carInfos.make,
-    'model': carInfos.model,
-    'year': carInfos.year,
-    'color': carInfos.color,
-    'engine': carInfos.engine,
-    'transmission': carInfos.transmission,
-    'price': carInfos.price,
-    'image0': carInfos.image0,
-    'image1': carInfos.image1,
-    'image2': carInfos.image2,
-    'image3': carInfos.image3,
-    'image4': carInfos.image4
-}
+        'car_id': carInfos.car_id,
+        'make': carInfos.make,
+        'model': carInfos.model,
+        'year': carInfos.year,
+        'color': carInfos.color,
+        'engine': carInfos.engine,
+        'transmission': carInfos.transmission,
+        'price': carInfos.price,
+        'image0': carInfos.image0,
+        'image1': carInfos.image1,
+        'image2': carInfos.image2,
+        'image3': carInfos.image3,
+        'image4': carInfos.image4
+    }
     return jsonify(carInfosDict), 200
 
 #Retrieve the accesories by categories

@@ -4,48 +4,48 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from server import app, db
-from server import ServicesRequest
+from unittest.mock import patch, MagicMock
 from datetime import datetime
+from flask import Flask, json
+from server import app  # Ensure the server and db are appropriately imported
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        populate_test_data()
-        yield app.test_client()  # Yielding testing client for your application
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
-def populate_test_data():
-    service_request = ServicesRequest(
-        service_offered_id=1,
-        customer_id=1,
-        proposed_datetime=datetime.now(),
-        status='pending',
-        car_id=10
-    )
-    db.session.add(service_request)
-    db.session.commit()
-    
-    
-def test_show_customer_service_requests_with_results(client):
-    """Test retrieving pending service requests successfully."""
+@patch('server.db.session.query')
+def test_show_customer_service_requests(mock_query, client):
+    # Create a proper datetime object for testing
+    proposed_datetime = datetime(2023, 4, 1, 10, 0)
+
+    # Mock the query return value
+    mock_service_requests = [
+        (MagicMock(service_request_id=1), "Oil Change", 29.99, "Standard Oil Change",
+         proposed_datetime, "pending", 123, 2, 101, "JohnDoe", "555-0123")
+    ]
+
+    mock_query.return_value.join.return_value.join.return_value.filter.return_value.all.return_value = mock_service_requests
+
+    # Perform the GET request to the endpoint
     response = client.get('/show_customer_service_requests/')
-    assert response.status_code == 200
-    requests = response.get_json()
-    assert len(requests) == 1
-    assert requests[0]['service_name'] == "Oil Change"
-    assert requests[0]['status'] == "pending"
 
-def test_show_customer_service_requests_no_pending(client):
-    """Test retrieving service requests when none are pending."""
-    # Mark existing service requests as completed
-    ServicesRequest.query.update({ServicesRequest.status: 'completed'})
-    db.session.commit()
-
-    response = client.get('/show_customer_service_requests/')
+    # Verify the response status code and data
     assert response.status_code == 200
-    requests = response.get_json()
-    assert len(requests) == 0
+    expected_data = [{
+        'service_request_id': 1,
+        'service_name': "Oil Change",
+        'service_price': 29.99,
+        'description': "Standard Oil Change",
+        'proposed_datetime': "2023-04-01T10:00:00",
+        'status': "pending",
+        'car_id': 123,
+        'service_offered_id': 2,
+        'customer_id': 101,
+        'customer_username': "JohnDoe",
+        'customer_phone': "555-0123"
+    }]
+    # Using response.get_json() to ensure format and type alignment in comparison
+    assert response.get_json() == expected_data

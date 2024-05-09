@@ -1,49 +1,75 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from server import app, db
+import json
+import hashlib
+from unittest.mock import patch, MagicMock
+from flask import Flask
+from server import app  # Make sure this import fetches your Flask app or redefine it here if needed
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        yield app.test_client()  # Yielding testing client for your application
-        
-        
-def test_edit_customer_success(client):
-    """Test successfully updating a customer's data."""
-    customer_id = 24
-    updated_data = {
-        'first_name': 'Jane3',
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
+
+@patch('server.db.session.commit')
+@patch('server.Customer.query')
+def test_edit_customer(mock_query, mock_commit, client):
+    # Create a mock customer object
+    mock_customer = MagicMock()
+    mock_customer.first_name = 'John'
+    mock_customer.last_name = 'Doe'
+    mock_customer.email = 'johndoe@example.com'
+    mock_customer.phone = '555-0000'
+    mock_customer.Address = '101 Main St'
+    mock_customer.password = hashlib.sha256('oldpassword'.encode()).hexdigest()
+    mock_customer.usernames = 'johndoe'
+
+    # Configure the query mock to return the mock customer when queried by ID
+    mock_query.get.return_value = mock_customer
+
+    # Prepare data to be sent to the PUT endpoint
+    update_data = {
+        'first_name': 'Jane',
         'last_name': 'Doe',
-        'email': 'jane3@example.com',
-        'phone': '987-654-3210',
-        'Address': '123 Maple St',
-        'password': 'newpassword',
-        'usernames': 'jane3_doe'
+        'email': 'janedoe@example.com',
+        'phone': '555-0101',
+        'Address': '123 Elm St',
+        'password': 'newpassword123',
+        'usernames': 'janedoe'
     }
-    response = client.put(f'/edit-customer/{customer_id}', json=updated_data)
+
+    # Make the PUT request to update customer data
+    response = client.put('/edit-customer/1', json=update_data)
+
+    # Check the updated attributes
+    assert mock_customer.first_name == 'Jane'
+    assert mock_customer.last_name == 'Doe'
+    assert mock_customer.email == 'janedoe@example.com'
+    assert mock_customer.phone == '555-0101'
+    assert mock_customer.Address == '123 Elm St'
+    assert mock_customer.password == hashlib.sha256('newpassword123'.encode()).hexdigest()
+    assert mock_customer.usernames == 'janedoe'
+
+    # Ensure the transaction was committed
+    mock_commit.assert_called_once()
+
+    # Check response
     assert response.status_code == 200
-    assert response.get_json()['message'] == 'User data updated successfully'
+    assert json.loads(response.data) == {'message': 'User data updated successfully'}
 
-def test_edit_customer_not_found(client):
-    """Test updating a non-existent customer."""
-    customer_id = 999  # Assuming this ID does not exist
-    response = client.put(f'/edit-customer/{customer_id}', json={'first_name': 'Test'})
+@patch('server.Customer.query')
+def test_edit_customer_not_found(mock_query, client):
+    # Configure the query mock to return None when a specific customer ID is queried
+    mock_query.get.return_value = None
+
+    # Attempt to update a non-existent customer
+    response = client.put('/edit-customer/999', json={'first_name': 'Jane'})
+
+    # Check response for non-existing customer
     assert response.status_code == 404
-    assert response.get_json()['message'] == 'Customer not found'
-
-# def test_edit_customer_invalid_method(client):
-#     """Test using an invalid HTTP method to access the endpoint."""
-#     customer_id = 1
-#     response = client.get(f'/edit-customer/{customer_id}')  # GET is not allowed
-#     assert response.status_code == 405
-#     json_data = response.get_json()
-#     #assert json_data is not None  # This ensures JSON data exists
-#     assert 'Invalid request method' in json_data['message']  # Correct access to JSON response
+    assert json.loads(response.data) == {'message': 'Customer not found'}

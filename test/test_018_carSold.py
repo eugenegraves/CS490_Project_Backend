@@ -1,60 +1,60 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from server import app, db
-from server import ItemSold
-from datetime import datetime
+from unittest.mock import patch, MagicMock
+from flask import json
+from server import app  # Ensure this import brings in your Flask app or recreate it here if needed
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        populate_test_data()
-        yield app.test_client()  # Yielding testing client for your application
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
-def populate_test_data():
-    # Sample data of cars sold
-    item_sold1 = ItemSold(
-        #item_sold_id is generated
-        customer_id=1,
-        item_type='car',
-        name='car',
-        date=datetime.utcnow(),
-        price=20000,
-        item_id=101,
-        method_of_payment='bank account'
-    )
-    item_sold2 = ItemSold(
-        #item_sold_id is generated
-        customer_id=1,
-        item_type='car',
-        name='car',
-        date=datetime.utcnow(),
-        price=15000,
-        item_id=102,
-        method_of_payment='bank account'
-    )
-    db.session.add_all([item_sold1, item_sold2])
-    db.session.commit()
-    
-    
-def test_get_car_sold_success(client):
-    """Test successfully retrieving cars sold to a specific customer."""
-    response = client.get('/car_sold/1')
+@patch('server.ItemSold.query')
+def test_get_car_sold_success(mock_query, client):
+    # Create a list of MagicMock objects to mimic the ItemSold instances returned from the query
+    mock_item_sold = MagicMock()
+    mock_item_sold.item_sold_id = 1
+    mock_item_sold.customer_id = 100
+    mock_item_sold.item_type = 'car'
+    mock_item_sold.date = MagicMock()
+    mock_item_sold.date.strftime.return_value = '2023-05-10 14:00:00'
+    mock_item_sold.price = 20000.00
+    mock_item_sold.item_id = 10
+    mock_item_sold.method_of_payment = 'cash'
+
+    # Configure the mock to return a list containing the mocked item sold when all() is called
+    mock_query.filter_by.return_value.all.return_value = [mock_item_sold]
+
+    # Perform the GET request to the endpoint
+    response = client.get('/car_sold/100')
+
+    # Verify the response status code and data
     assert response.status_code == 200
-    cars_sold = response.get_json()
-    assert len(cars_sold) >= 2  # Assuming customer 1 bought 2 cars
-    assert cars_sold[0]['price'] == 20000
-    assert cars_sold[1]['method_of_payment'] == 'bank account'
+    expected_data = [{
+        'item_sold_id': 1,
+        'customer_id': 100,
+        'item_type': 'car',
+        'date': '2023-05-10 14:00:00',
+        'price': 20000.00,
+        'item_id': 10,
+        'method_of_payment': 'cash'
+    }]
+    # Using json.loads to ensure format and type alignment in comparison
+    assert json.loads(response.data) == expected_data
 
-def test_get_car_sold_no_items_found(client):
-    """Test retrieving cars sold when no cars have been sold to the customer."""
-    response = client.get('/car_sold/999')  # Assuming customer 999 has no cars sold
+@patch('server.ItemSold.query')
+def test_get_car_sold_not_found(mock_query, client):
+    # Configure the mock to return an empty list when all() is called
+    mock_query.filter_by.return_value.all.return_value = []
+
+    # Perform the GET request to the endpoint
+    response = client.get('/car_sold/999')
+
+    # Verify the response status code and data
     assert response.status_code == 404
-    assert 'No items sold found' in response.get_json()['message']
+    assert json.loads(response.data) == {'message': 'No items sold found for this customer ID and item type.'}

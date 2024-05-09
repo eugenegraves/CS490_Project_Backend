@@ -1,46 +1,84 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-import logging
+from unittest.mock import patch, MagicMock
 from flask import json
-from datetime import datetime, timedelta
-from server import app, db  # Importing from the server module where Flask app is defined
-from server import ServicesRequest, ServicesOffered, Technicians, OwnCar, AssignedServices  
-
+from server import app
+import datetime
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        populate_test_data()
-        yield app.test_client()  # Yielding testing client for your application
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
-def populate_test_data():
-    # Add test data to the database
-    service_offered = ServicesOffered(name='Oil Change', price='49.99', description='Includes oil change and replacement of oil filter', image='https://i.ibb.co/QQrpbYS/OIG2-Fu-BCh6f-RT.jpg')
-    technician = Technicians(first_name='awais', last_name='Taylor', email='awais.taylor@example.com', usernames='awaisaataylor123', phone='123-456-7890', password='password123', manager_id='1')
-    car = OwnCar(car_id='4', customer_id='21', make='Toyota', model='Corolla', year=2020)
-    service_request = ServicesRequest(
-        customer_id='1',
-        proposed_datetime=datetime.now() + timedelta(days=3),
-        status='accepted',
-        service_offered_id=1,
-        car_id=1
-    )
-    db.session.add_all([service_offered, technician, car, service_request])
-    db.session.commit()
-        
-def test_get_upcoming_week_requests_success(client):
-    """Test successful retrieval of service requests."""
+@patch('server.db.session.query')
+def test_get_upcoming_week_requests(mock_query, client):
+    # Define mock data for the service requests
+    mock_service_request_1 = MagicMock()
+    mock_service_request_1.service_request_id = 1
+    mock_service_request_1.proposed_datetime = datetime.datetime(2024, 5, 10, 10, 0, 0)  # Corrected datetime format
+    mock_service_request_1.status = 'accepted'
+    mock_service_request_1.service_name = 'Oil Change'
+    mock_service_request_1.first_name = 'John'
+    mock_service_request_1.last_name = 'Doe'
+    mock_service_request_1.make = 'Toyota'
+    mock_service_request_1.model = 'Camry'
+    mock_service_request_1.year = 2020
+
+    mock_service_request_2 = MagicMock()
+    mock_service_request_2.service_request_id = 2
+    mock_service_request_2.proposed_datetime = datetime.datetime(2024, 5, 11, 14, 0, 0)  # Corrected datetime format
+    mock_service_request_2.status = 'assigned'
+    mock_service_request_2.service_name = 'Brake Repair'
+    mock_service_request_2.first_name = 'Alice'
+    mock_service_request_2.last_name = 'Smith'
+    mock_service_request_2.make = 'Honda'
+    mock_service_request_2.model = 'Accord'
+    mock_service_request_2.year = 2018
+
+    # Set up the mock to return the mock service requests
+    mock_query.return_value.join.return_value.outerjoin.return_value.outerjoin.return_value.join.return_value.filter.return_value.all.return_value = [mock_service_request_1, mock_service_request_2]
+
+    # Perform the GET request to the endpoint
     response = client.get('/get_upcoming_week_requests')
+
+    # Verify the response status code and data
     assert response.status_code == 200
-    data = response.get_json()
-    assert 'accepted_service_requests' in data
-    assert 'assigned_service_requests' in data
-    assert len(data['accepted_service_requests']) > 0  # Ensure data is being returned
+    expected_data = {
+        'accepted_service_requests': [
+            {
+                'service_request_id': 1,
+                'date': '2024-05-10',
+                'date_time': '2024-05-10 10:00',
+                'service_name': 'Oil Change',
+                'technician_name': 'John Doe',
+                'car_info': {
+                    'make': 'Toyota',
+                    'model': 'Camry',
+                    'year': 2020
+                },
+                'status': 'accepted'
+            }
+        ],
+        'assigned_service_requests': [
+            {
+                'service_request_id': 2,
+                'date': '2024-05-11',
+                'date_time': '2024-05-11 14:00',
+                'service_name': 'Brake Repair',
+                'technician_name': 'Alice Smith',
+                'car_info': {
+                    'make': 'Honda',
+                    'model': 'Accord',
+                    'year': 2018
+                },
+                'status': 'assigned'
+            }
+        ]
+    }
+    assert json.loads(response.data) == expected_data
+

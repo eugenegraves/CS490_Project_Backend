@@ -1,49 +1,65 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from server import app, db
+from unittest.mock import patch, MagicMock
+from flask import json
+
+# Import your Flask app instance
+from server import app  # Update this import with your actual Flask app
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        yield app.test_client()  # Yielding testing client for your application
-        
-def test_login_admin_success(client):
-    """ Test admin login successfully with correct credentials. """
-    login_data = {
-        'usernames': 'john_admin',
-        'password': '1234'
-    }
-    response = client.post('/login_admin', json=login_data)
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
+
+
+@patch('server.Admin.query')
+def test_login_admin_successful(mock_query, client):
+    # Mock data
+    mock_admin = MagicMock()
+    mock_admin.admin_id = 1
+    mock_admin.first_name = 'John'
+    mock_admin.last_name = 'Doe'
+    mock_admin.usernames = 'john_doe'
+    mock_admin.phone = '123-456-7890'
+
+    # Configure the mock to return the mock admin when filter_by().first() is called
+    mock_query.filter_by.return_value.first.return_value = mock_admin
+
+    # Make a request to the endpoint
+    response = client.post('/login_admin', json={'usernames': 'john_doe', 'password': 'test123'})
+
+    # Assert the response
     assert response.status_code == 200
-    data = response.get_json()
-    assert data['first_name'] == 'John'
-
-
-def test_login_admin_failure(client):
-    """ Test login failure due to incorrect credentials. """
-    login_data = {
-        'usernames': 'john_admin',
-        'password': '12345'
+    expected_data = {
+        'admin_id': 1,
+        'first_name': 'John',
+        'last_name': 'Doe',
+        'usernames': 'john_doe',
+        'phone': '123-456-7890'
     }
-    response = client.post('/login_admin', json=login_data)
-    assert response.status_code == 401
-    assert 'Invalid admin ID, password, or first name' in response.get_json()['error']
+    assert json.loads(response.data) == expected_data
 
+@patch('server.Admin.query')
+def test_login_admin_invalid_credentials(mock_query, client):
+    # Configure the mock to return None when filter_by().first() is called
+    mock_query.filter_by.return_value.first.return_value = None
+
+    # Make a request to the endpoint with invalid credentials
+    response = client.post('/login_admin', json={'usernames': 'invalid_user', 'password': 'invalid_password'})
+
+    # Assert the response
+    assert response.status_code == 401
+    assert json.loads(response.data) == {'error': 'Invalid admin ID, password, or first name'}
 
 def test_login_admin_missing_fields(client):
-    """ Test response for missing usernames or password. """
-    login_data = {
-        'usernames': 'adminuser'
-        # missing 'password'
-    }
-    response = client.post('/login_admin', json=login_data)
+    # Make a request to the endpoint with missing fields
+    response = client.post('/login_admin', json={})
+
+    # Assert the response
     assert response.status_code == 400
-    assert 'Technician ID, password, and first name are required' in response.get_json()['error']
+    assert json.loads(response.data) == {'error': 'Technician ID, password, and first name are required'}

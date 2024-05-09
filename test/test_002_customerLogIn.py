@@ -1,53 +1,86 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-import logging
+from unittest.mock import patch, MagicMock
 from flask import json
-from server import app, db  # Importing from the server module where Flask app is defined
+from server import app  # Ensure this import brings in your Flask app or recreate it here if needed
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        yield app.test_client()  # Yielding testing client for your application
-        
-        
-def test_login_success(client):
-    """ Test customer successful login """
-    login_data = {
-        'usernames': 'johndoe123',
-        'password': 'password123'
+@patch('server.Customer.query')
+def test_login_success(mock_query, client):
+    # Set up mock customer data
+    mock_customer = MagicMock()
+    mock_customer.customer_id = 1
+    mock_customer.first_name = 'John'
+    mock_customer.last_name = 'Doe'
+    mock_customer.email = 'johndoe@example.com'
+    mock_customer.phone = '1234567890'
+    mock_customer.Address = '123 Elm Street'
+    mock_customer.password = 'hashed_password'
+    mock_customer.usernames = 'johndoe'
+    mock_customer.social_security = '123-45-6789'
+
+    # Set up request data
+    request_data = {
+        'usernames': 'johndoe',
+        'password': 'password123'  # Assuming this is the plain text password
     }
-    response = client.post('/login_customer', json=login_data)
+
+    # Configure mock to return the mock customer when filter_by is called
+    mock_query.filter_by.return_value.first.return_value = mock_customer
+
+    # Perform the POST request to the endpoint
+    response = client.post('/login_customer', json=request_data)
+
+    # Verify the response status code and data
     assert response.status_code == 200
-    assert response.json['customer_id'] == 1
-    assert response.json['email'] == 'john.doe@example.com'
-
-
-def test_login_failure(client):
-    """ Test customer login with wrong credentials """
-    login_data = {
-        'usernames': 'johndoe123',
-        'password': 'password223'
+    expected_data = {
+        'customer_id': 1,
+        'first_name': 'John',
+        'last_name': 'Doe',
+        'email': 'johndoe@example.com',
+        'phone': '1234567890',
+        'Address': '123 Elm Street',
+        'password': 'hashed_password',
+        'usernames': 'johndoe',
+        'social_security': '123-45-6789'
     }
-    response = client.post('/login_customer', json=login_data)
-    assert response.status_code == 401
-    assert response.json['error'] == 'Invalid username or password'
+    assert json.loads(response.data) == expected_data
 
+@patch('server.Customer.query')
+def test_login_missing_credentials(mock_query, client):
+    # Set up request data with missing credentials
+    request_data = {}  # No 'usernames' and 'password' in the request data
 
-def test_login_missing_fields(client):
-    """ Test customer login with missing fields """
-    login_data = {
-        'usernames': 'johndoe123'
-        # Missing password
-    }
-    response = client.post('/login_customer', json=login_data)
+    # Perform the POST request to the endpoint
+    response = client.post('/login_customer', json=request_data)
+
+    # Verify the response status code and data
     assert response.status_code == 400
-    assert response.json['error'] == 'Username and password are required'
+    assert json.loads(response.data) == {'error': 'Username and password are required'}
+
+@patch('server.Customer.query')
+def test_login_invalid_credentials(mock_query, client):
+    # Set up request data with invalid credentials
+    request_data = {
+        'usernames': 'johndoe',
+        'password': 'invalid_password'
+    }
+
+    # Configure mock to return None (indicating no matching customer)
+    mock_query.filter_by.return_value.first.return_value = None
+
+    # Perform the POST request to the endpoint
+    response = client.post('/login_customer', json=request_data)
+
+    # Verify the response status code and data
+    assert response.status_code == 401
+    assert json.loads(response.data) == {'error': 'Invalid username or password'}

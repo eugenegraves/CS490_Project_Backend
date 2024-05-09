@@ -1,50 +1,64 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from server import app, db
+from unittest.mock import patch, MagicMock
+from flask import json
+from server import app
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        yield app.test_client()  # Yielding testing client for your application
-        
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
-def test_login_manager_success(client):
-    """ Test manager login successfully. """
-    login_data = {
-        'usernames': 'johnsmith123',
-        'password': 'password123'
-    }
-    response = client.post('/login_managers', json=login_data)
+@patch('server.Managers.query')
+def test_login_managers_success(mock_query, client):
+    # Mock the database query result
+    mock_manager = MagicMock()
+    mock_manager.manager_id = 1
+    mock_manager.first_name = 'John'
+    mock_manager.last_name = 'Doe'
+    mock_manager.email = 'johndoe@example.com'
+    mock_manager.phone = '1234567890'
+    mock_manager.admin_id = 1
+    mock_manager.usernames = 'johndoe'
+    mock_query.filter_by.return_value.first.return_value = mock_manager
+
+    # Make a POST request to the endpoint
+    response = client.post('/login_managers', json={'usernames': 'johndoe', 'password': 'password123'})
+
+    # Verify the response
     assert response.status_code == 200
-    data = response.get_json()
-    assert data['first_name'] == 'John'
-
-
-def test_login_manager_failure(client):
-    """ Test login failure due to incorrect credentials. """
-    login_data = {
-        'usernames': 'johnsmith123',
-        'password': 'password223'
+    expected_data = {
+        'manager_id': 1,
+        'first_name': 'John',
+        'last_name': 'Doe',
+        'email': 'johndoe@example.com',
+        'phone': '1234567890',
+        'admin_id': 1,
+        'usernames': 'johndoe'
     }
-    response = client.post('/login_managers', json=login_data)
+    assert json.loads(response.data) == expected_data
+
+@patch('server.Managers.query')
+def test_login_managers_invalid_credentials(mock_query, client):
+    # Mock the database query result to return None (indicating invalid credentials)
+    mock_query.filter_by.return_value.first.return_value = None
+
+    # Make a POST request to the endpoint with invalid credentials
+    response = client.post('/login_managers', json={'usernames': 'johndoe', 'password': 'invalidpassword'})
+
+    # Verify the response
     assert response.status_code == 401
-    assert 'Invalid manager ID, password, or first name' in response.get_json()['error']
+    assert json.loads(response.data) == {'error': 'Invalid manager ID, password, or first name'}
 
+def test_login_managers_missing_data(client):
+    # Make a POST request to the endpoint without providing required data
+    response = client.post('/login_managers', json={})
 
-def test_login_manager_missing_fields(client):
-    """ Test response for missing usernames or password. """
-    login_data = {
-        'usernames': 'johnsmith123'
-        # missing 'password'
-    }
-    response = client.post('/login_managers', json=login_data)
+    # Verify the response
     assert response.status_code == 400
-    assert 'Technician ID, password, and first name are required' in response.get_json()['error']
+    assert json.loads(response.data) == {'error': 'Technician ID, password, and first name are required'}

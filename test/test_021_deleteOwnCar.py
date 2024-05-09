@@ -1,50 +1,63 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from server import app, db
-from server import OwnCar, Customer
-
+from unittest.mock import patch, MagicMock
+from flask import json
+from server import app, db  # Ensure this import brings in your Flask app or recreate it here if needed
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        yield app.test_client()  # Yielding testing client for your application
-        
-        
-@pytest.fixture
-def add_car():
-    car = OwnCar(car_id=130, customer_id=1, make="Toyota", model="Rav4", year=2023)
-    db.session.add(car)
-    db.session.commit()
-    return car
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
+@patch('server.db.session.commit')
+@patch('server.db.session.delete')
+@patch('server.OwnCar.query')
+def test_delete_car_success(mock_query, mock_delete, mock_commit, client):
+    # Mock the car retrieval
+    mock_car = MagicMock()
+    mock_query.get.return_value = mock_car
 
-def test_delete_car_success(client, add_car):
-    """Test successful deletion of a car."""
-    response = client.delete(f'/delete_own_car/{add_car.car_id}')
+    # Call the endpoint
+    response = client.delete('/delete_own_car/123')
+
+    # Check the response
     assert response.status_code == 200
-    assert 'Car with ID 130 deleted successfully' in response.get_json()['message']
-    assert OwnCar.query.get(add_car.car_id) is None
+    assert json.loads(response.data) == {'message': 'Car with ID 123 deleted successfully'}
 
-def test_delete_car_not_found(client):
-    """Test deletion attempt for a non-existing car."""
-    response = client.delete('/delete_own_car/24')  # Assuming car ID 999 does not exist
+    # Verify that delete and commit were called
+    mock_delete.assert_called_with(mock_car)
+    mock_commit.assert_called_once()
+
+@patch('server.OwnCar.query')
+def test_delete_car_not_found(mock_query, client):
+    # Configure the mock to return None when the car is not found
+    mock_query.get.return_value = None
+
+    # Call the endpoint
+    response = client.delete('/delete_own_car/999')
+
+    # Check the response
     assert response.status_code == 404
-    assert 'Car with ID 24 not found' in response.get_json()['error']
+    assert json.loads(response.data) == {'error': 'Car with ID 999 not found'}
 
-def test_delete_car_exception(client, monkeypatch):
-    """Test internal error during car deletion."""
-    def mock_delete(*args, **kwargs):
-        raise Exception("Mock exception")
+@patch('server.db.session.commit')
+@patch('server.db.session.delete')
+@patch('server.OwnCar.query')
+def test_delete_car_failure(mock_query, mock_delete, mock_commit, client):
+    # Configure the mock to raise an exception
+    mock_query.get.side_effect = Exception("Database error")
 
-    monkeypatch.setattr(db.session, 'delete', mock_delete)
-    response = client.delete('/delete_own_car/1')
+    # Call the endpoint
+    response = client.delete('/delete_own_car/123')
+
+    # Check the response
     assert response.status_code == 500
-    assert 'Mock exception' in response.get_json()['error']
+    assert json.loads(response.data) == {'error': 'Database error'}
+
+    # Verify that commit was not called
+    mock_commit.assert_not_called()

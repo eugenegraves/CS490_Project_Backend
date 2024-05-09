@@ -1,29 +1,56 @@
 import sys
 import os
-# Append the directory of server.py to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from server import app, db
+from unittest.mock import patch, MagicMock
+from flask import jsonify, Flask
+from server import app  # Adjust the import according to your actual application structure
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Use in-memory SQLite for tests
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    with app.app_context():
-        db.create_all()  # Create schema in the test database
-        yield app.test_client()  # Yielding testing client for your application
-        
-def test_get_all_services(client):
-    """Test retrieving all services offered."""
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
+
+@patch('server.ServicesOffered.query')
+def test_get_all_services(mock_query, client):
+    # Setup mock
+    mock_service = MagicMock()
+    mock_service.services_offered_id = 1
+    mock_service.name = 'oil change'
+    mock_service.price = 15.00
+    mock_service.description = 'Its an oil change'
+    mock_service.image = 'image_url.jpg'
+
+    # Configure the mock to return a list containing your mocked service when all() is called
+    mock_query.all.return_value = [mock_service]
+
+    # Perform the GET request to the endpoint
     response = client.get('/services-offered')
+
+    # Expected data setup
+    expected_data = [{
+        'services_offered_id': 1,
+        'name': 'oil change',
+        'price': 15.00,
+        'description': 'Its an oil change',
+        'image': 'image_url.jpg'
+    }]
+
+    # Verify the response status code and data
     assert response.status_code == 200
-    services = response.get_json()
-    assert len(services) == 10 # subject to chnage based on the rows we have within our databse
-    assert services[0]['name'] == "Oil Change"
-    assert services[1]['name'] == "Tire Rotation"
-    assert services[0]['price'] == 49.99
-    assert 'description' in services[0]
-    assert 'image' in services[0]
-    assert services[0]['image'] == "https://i.ibb.co/QQrpbYS/OIG2-Fu-BCh6f-RT.jpg"
+    assert response.json == expected_data
+
+@patch('server.ServicesOffered.query')
+def test_get_all_services_empty(mock_query, client):
+    # Configure the mock to return an empty list when all() is called
+    mock_query.all.return_value = []
+
+    # Perform the GET request to the endpoint
+    response = client.get('/services-offered')
+
+    # Verify the response status code and data
+    assert response.status_code == 200
+    assert response.json == []

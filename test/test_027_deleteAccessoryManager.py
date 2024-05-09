@@ -1,45 +1,77 @@
-import pytest
-from unittest.mock import patch, MagicMock
 import sys
 import os
-
-# Assuming the Flask app is structured properly
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from server import app, db  # Import the Flask app and db context
+
+import pytest
+from unittest.mock import patch, MagicMock
+from flask import json
+from server import app  # Ensure this import brings in your Flask app or recreate it here if needed
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    with app.app_context():
-        db.create_all()
-        yield app.test_client()  # This ensures the test client is used within app context
-        
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
-def test_delete_accessory_manager_success(client):
-    """Test successfully deleting an accessory."""
-    with patch('sqlalchemy.orm.Session.execute', MagicMock()) as mock_execute:
-        mock_result = MagicMock()
-        mock_result.rowcount = 1  # Simulate one row being affected
-        mock_execute.return_value = mock_result
+@patch('server.db.session.execute')
+@patch('server.db.session.commit')
+def test_delete_accessory_success(mock_commit, mock_execute, client):
+    # Set up the mock to simulate a successful delete operation
+    mock_result = MagicMock()
+    mock_result.rowcount = 1
+    mock_execute.return_value = mock_result
 
-        response = client.post('/deleteAccessoryManager', json={'accessoryID': {'accessoire_id': 1}})
-        assert response.status_code == 200
-        assert 'Accessory deleted successfully' in response.get_json()['message']
+    # Prepare the data to send with the request
+    accessory_data = {'accessoryID': {'accessoire_id': '123'}}
+    response = client.post('/deleteAccessoryManager', json=accessory_data)
 
-def test_delete_accessory_manager_not_found(client):
-    """Test attempting to delete an accessory that does not exist."""
-    with patch('sqlalchemy.orm.Session.execute', MagicMock()) as mock_execute:
-        mock_result = MagicMock()
-        mock_result.rowcount = 0  # Simulate no rows being affected
-        mock_execute.return_value = mock_result
+    # Verify the response status code and data
+    assert response.status_code == 200
+    assert json.loads(response.data) == {'message': 'Accessory deleted successfully'}
 
-        response = client.post('/deleteAccessoryManager', json={'accessoryID': {'accessoire_id': 999}})
-        assert response.status_code == 404
-        assert 'Accessory not found' in response.get_json()['error']
+    # Check if commit was called
+    mock_commit.assert_called_once()
 
-def test_delete_accessory_manager_non_json_request(client):
-    """Test deleting an accessory with a request that isn't in JSON format."""
-    response = client.post('/deleteAccessoryManager', data='not-a-json')
+@patch('server.db.session.execute')
+@patch('server.db.session.commit')
+def test_delete_accessory_not_found(mock_commit, mock_execute, client):
+    # Set up the mock to simulate no rows affected (accessory not found)
+    mock_result = MagicMock()
+    mock_result.rowcount = 0
+    mock_execute.return_value = mock_result
+
+    # Prepare the data to send with the request
+    accessory_data = {'accessoryID': {'accessoire_id': '456'}}
+    response = client.post('/deleteAccessoryManager', json=accessory_data)
+
+    # Verify the response status code and data
+    assert response.status_code == 404
+    assert json.loads(response.data) == {'error': 'Accessory not found'}
+
+@patch('server.db.session.execute')
+@patch('server.db.session.commit')
+def test_delete_accessory_bad_request(mock_commit, mock_execute, client):
+    # Simulate sending a bad request (non-JSON)
+    response = client.post('/deleteAccessoryManager', data="not-json")
+
+    # Verify the response status code and data
     assert response.status_code == 400
-    assert 'Request is not in JSON format' in response.get_json()['error']
+    assert json.loads(response.data) == {'error': 'Request is not in JSON format'}
+
+@patch('server.db.session.execute')
+@patch('server.db.session.commit')
+def test_delete_accessory_server_error(mock_commit, mock_execute, client):
+    # Configure the mock to raise an exception during execute
+    mock_execute.side_effect = Exception("Database failure")
+
+    # Prepare the data to send with the request
+    accessory_data = {'accessoryID': {'accessoire_id': '789'}}
+    response = client.post('/deleteAccessoryManager', json=accessory_data)
+
+    # Verify the response status code and data
+    assert response.status_code == 500
+    assert json.loads(response.data) == {'error': 'Database failure'}
+
+    # Check if commit was not called due to error
+    mock_commit.assert_not_called()
